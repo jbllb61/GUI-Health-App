@@ -201,7 +201,12 @@ class BMICalculatorGUI:
         self.ax.xaxis.set_major_formatter(date_format)
         self.ax.xaxis.set_major_locator(mdates.AutoDateLocator())  # Ensure proper spacing of dates
 
+        # Rotate date labels to prevent overlap
+        plt.setp(self.ax.get_xticklabels(), rotation=45, ha="right")
+
+        # Adjust layout to accommodate rotated labels
         plt.tight_layout()
+
         self.canvas.draw()
 
     def show_exercise_suggestions(self):
