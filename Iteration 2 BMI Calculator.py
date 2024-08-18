@@ -199,7 +199,9 @@ class BMICalculatorGUI:
         # Set the date format to "day-month-year" using matplotlib.mdates
         date_format = mdates.DateFormatter('%d-%m-%Y')
         self.ax.xaxis.set_major_formatter(date_format)
-        self.ax.xaxis.set_major_locator(mdates.AutoDateLocator())  # Ensure proper spacing of dates
+        
+        # One tick per day
+        self.ax.xaxis.set_major_locator(mdates.DayLocator())
 
         # Rotate date labels to prevent overlap
         plt.setp(self.ax.get_xticklabels(), rotation=45, ha="right")
