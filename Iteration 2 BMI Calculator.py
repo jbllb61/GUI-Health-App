@@ -6,6 +6,7 @@ from tkinter.ttk import *
 from tkinter import messagebox
 from tkcalendar import DateEntry
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 # Constants
@@ -195,6 +196,11 @@ class BMICalculatorGUI:
         self.ax.set_title('BMI Trend')
         self.ax.grid(True)
 
+        # Set the date format to "day-month-year" using matplotlib.mdates
+        date_format = mdates.DateFormatter('%d-%m-%Y')
+        self.ax.xaxis.set_major_formatter(date_format)
+        self.ax.xaxis.set_major_locator(mdates.AutoDateLocator())  # Ensure proper spacing of dates
+
         plt.tight_layout()
         self.canvas.draw()
 
@@ -239,10 +245,6 @@ class ExerciseSuggestionWindow:
 
     def display_exercise(self):
         exercise = self.exercises[self.current_exercise]
-        
-        # Assuming images are handled elsewhere
-        # self.display_image(exercise['image'])
-
         self.description_label.config(text=f"{exercise['name']}\n\n{exercise['description']}")
 
     def next_exercise(self):
