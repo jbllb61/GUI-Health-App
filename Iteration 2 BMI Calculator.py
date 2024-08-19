@@ -187,6 +187,7 @@ class BMICalculatorGUI:
 
     def update_chart(self):
         self.ax.clear()
+        # Convert the date strings from the BMI data entries into datetime objects for plotting
         dates = [datetime.datetime.strptime(entry['date'], "%Y-%m-%d") for entry in self.calculator.bmi_data]
         bmis = [entry['bmi'] for entry in self.calculator.bmi_data]
 
@@ -196,12 +197,22 @@ class BMICalculatorGUI:
         self.ax.set_title('BMI Trend')
         self.ax.grid(True)
 
-        # Set the date format to "day-month-year" using matplotlib.mdates
-        date_format = mdates.DateFormatter('%d-%m-%Y')
-        self.ax.xaxis.set_major_formatter(date_format)
-        
-        # One tick per day
-        self.ax.xaxis.set_major_locator(mdates.DayLocator())
+        # Determine the range of dates to adjust tick frequency
+        date_range = (max(dates) - min(dates)).days
+
+        # Adjust tick frequency based on the date range
+        if date_range <= 7:
+            # Use daily ticks for a range of up to a week
+            self.ax.xaxis.set_major_locator(mdates.DayLocator())
+        elif date_range <= 31:
+            # Use weekly ticks for a range of up to a month
+            self.ax.xaxis.set_major_locator(mdates.WeekdayLocator())
+        else:
+            # Use monthly ticks for longer ranges
+            self.ax.xaxis.set_major_locator(mdates.MonthLocator())
+
+        # Format dates to "day-month-year"
+        self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%m-%Y'))
 
         # Rotate date labels to prevent overlap
         plt.setp(self.ax.get_xticklabels(), rotation=45, ha="right")
