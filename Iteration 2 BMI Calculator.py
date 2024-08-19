@@ -191,6 +191,17 @@ class BMICalculatorGUI:
         dates = [datetime.datetime.strptime(entry['date'], "%Y-%m-%d") for entry in self.calculator.bmi_data]
         bmis = [entry['bmi'] for entry in self.calculator.bmi_data]
 
+        # Check if there is any data to plot
+        if not self.calculator.bmi_data:
+            self.ax.set_title('BMI Trend')
+            self.ax.set_xlabel('Date')
+            self.ax.set_ylabel('BMI')
+            self.ax.grid(True)
+            self.ax.set_xticks([])  # Remove x-axis ticks if there's no data
+            self.ax.set_yticks([])  # Remove y-axis ticks if there's no data
+            self.canvas.draw()
+            return
+
         self.ax.plot(dates, bmis, marker='o')
         self.ax.set_xlabel('Date')
         self.ax.set_ylabel('BMI')
