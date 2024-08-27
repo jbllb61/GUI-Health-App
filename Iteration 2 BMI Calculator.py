@@ -240,7 +240,7 @@ class ExerciseSuggestionWindow:
     def __init__(self, parent):
         self.window = Toplevel(parent)
         self.window.title("Exercise Suggestions")
-        self.window.geometry("400x300")
+        self.window.geometry("500x400")
 
         self.exercises = self.load_exercise_data()
         self.current_exercise = 0
@@ -251,7 +251,7 @@ class ExerciseSuggestionWindow:
         self.image_label = Label(self.window)
         self.image_label.pack(pady=10)
 
-        self.description_label = Label(self.window, wraplength=350, justify="center")
+        self.description_label = Label(self.window, wraplength=450, justify="center")
         self.description_label.pack(pady=10)
 
         button_frame = Frame(self.window)
@@ -267,9 +267,13 @@ class ExerciseSuggestionWindow:
 
     def load_exercise_data(self):
         return [
-            {"name": "Push-ups", "description": "Great for upper body strength.", "image": "pushup.png"},
-            {"name": "Squats", "description": "Excellent for lower body strength.", "image": "squat.png"},
-            {"name": "Plank", "description": "Builds core strength and stability.", "image": "plank.png"}
+            {"name": "Walking", "description": "Walking is a low-impact exercise that can be done anywhere. It improves cardiovascular health, strengthens muscles, and boosts mood. Recommended: 150 minutes per week."},
+            {"name": "Running", "description": "Running is an excellent cardio workout that burns a lot of calories and improves cardiovascular fitness. It can be done outdoors or on a treadmill. Recommended: 3-4 times per week, 20-30 minutes per session."},
+            {"name": "Cycling", "description": "Cycling, whether on a bike or stationary, is great for cardiovascular health and leg strength. It’s low-impact and can be adjusted for different fitness levels. Recommended: 2-3 times per week, 30-45 minutes per session."},
+            {"name": "Rowing", "description": "Rowing provides a full-body workout, focusing on both upper and lower body strength as well as cardio endurance. It’s effective and low-impact. Recommended: 2-3 times per week, 20-30 minutes per session."},
+            {"name": "Jump Rope", "description": "Jumping rope is an effective way to boost cardiovascular health and coordination. It’s a high-intensity workout that can be done in a short time. Recommended: 3 times per week, 10-15 minutes per session."},
+            {"name": "Swimming", "description": "Swimming is a low-impact exercise that improves cardiovascular fitness and tones muscles. It’s ideal for full-body conditioning. Recommended: 2-3 times per week, 30 minutes per session."},
+            {"name": "High-Intensity Interval Training (HIIT)", "description": "HIIT involves short bursts of intense exercise followed by rest periods. It’s highly effective for burning calories and improving cardiovascular health. Recommended: 2-3 times per week, 20-30 minutes per session."}
         ]
 
     def display_exercise(self):
