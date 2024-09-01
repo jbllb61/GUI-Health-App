@@ -4,7 +4,7 @@ import datetime
 from tkinter import *
 from tkinter.ttk import *
 from tkinter import messagebox
-from tkcalendar import DateEntry
+from tkcalendar import Calendar
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -91,7 +91,7 @@ class BMICalculatorGUI:
         self.calculator = BMICalculator()
 
         self.master.minsize(600, 400)
-        self.master.geometry("800x600")
+        self.master.geometry("600x400")
 
         self.create_widgets()
 
@@ -107,15 +107,44 @@ class BMICalculatorGUI:
         input_frame = Frame(self.notebook, padding="10")
         self.notebook.add(input_frame, text="Input")
 
-        self.date_entry = self.create_labeled_entry(input_frame, "Date:", DateEntry, 0)
-        self.weight_entry = self.create_labeled_entry(input_frame, "Weight (kg):", Entry, 1)
-        self.height_entry = self.create_labeled_entry(input_frame, "Height (cm):", Entry, 2)
+        # Create a frame to hold the input fields and calendar side by side
+        content_frame = Frame(input_frame)
+        content_frame.pack(expand=True, fill=BOTH)
 
-        self.create_button(input_frame, "Calculate BMI", self.calculate_bmi, 3)
-        self.result_label = Label(input_frame, text="")
-        self.result_label.grid(row=4, column=0, columnspan=2, sticky=W)
+        # Left frame for input fields
+        left_frame = Frame(content_frame)
+        left_frame.pack(side=LEFT, padx=(0, 10), expand=True, fill=BOTH)
 
-        self.create_button(input_frame, "View Exercise Suggestions", self.show_exercise_suggestions, 5)
+        # Add widgets to the left frame
+        self.date_entry = self.create_labeled_entry(left_frame, "Date (YYYY-MM-DD):", Entry, 0)
+        self.weight_entry = self.create_labeled_entry(left_frame, "Weight (kg):", Entry, 1)
+        self.height_entry = self.create_labeled_entry(left_frame, "Height (cm):", Entry, 2)
+
+        # Create a button frame to center buttons
+        button_frame = Frame(left_frame)
+        button_frame.grid(row=3, column=0, columnspan=2, pady=10)
+
+        self.create_button(button_frame, "Calculate BMI", self.calculate_bmi)
+        self.result_label = Label(left_frame, text="")
+        self.result_label.grid(row=4, column=0, columnspan=2, pady=10)
+
+        self.create_button(left_frame, "View Exercise Suggestions", self.show_exercise_suggestions, row=5)
+
+        # Right frame for calendar
+        right_frame = Frame(content_frame)
+        right_frame.pack(side=RIGHT, padx=(10, 0), fill=BOTH)
+
+        # Add calendar to the right frame
+        self.calendar = Calendar(right_frame, selectmode='day', date_pattern='yyyy-mm-dd')
+        self.calendar.pack(fill=BOTH)
+
+        # Bind the calendar selection to update the date entry
+        self.calendar.bind("<<CalendarSelected>>", self.update_date_entry)
+
+    def update_date_entry(self, event):
+        selected_date = self.calendar.get_date()
+        self.date_entry.delete(0, END)
+        self.date_entry.insert(0, selected_date)
 
     def create_history_tab(self):
         history_frame = Frame(self.notebook, padding="10")
@@ -155,7 +184,7 @@ class BMICalculatorGUI:
 
     def calculate_bmi(self):
         try:
-            date = self.date_entry.get_date()
+            date = datetime.datetime.strptime(self.date_entry.get(), "%Y-%m-%d").date()
             weight = float(self.weight_entry.get())
             height = float(self.height_entry.get())
 
