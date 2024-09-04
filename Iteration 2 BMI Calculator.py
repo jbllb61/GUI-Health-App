@@ -213,7 +213,7 @@ class BMICalculatorGUI:
                 messagebox.showerror("Error", "Failed to remove entry.")
         else:
             messagebox.showwarning("Warning", "Please select an entry to remove.")
-
+# The following section shows the visual representation of BMI over time in the form of a graph
     def update_chart(self):
         self.ax.clear()
         # Convert the date strings from the BMI data entries into datetime objects for plotting
