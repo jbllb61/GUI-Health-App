@@ -300,10 +300,10 @@ class BMICalculatorGUI:
 
         # Dropdown for date range selection
         self.date_range_var = StringVar()
-        self.date_range_var.set("Months")  # Set the default value
+        self.date_range_var.set("Last 7 Days")  # Set the default value
 
         # Options list
-        options = ["Days", "Days", "Weeks", "Months", "Years"]
+        options = ["Last 7 Days", "Last 7 Days", "Last 2 Weeks", "Last 3 Weeks", "Last Month", "Last 3 Months", "Last 6 Months", "Last Year"]
 
         # Create OptionMenu
         self.date_range_menu = OptionMenu(
@@ -322,6 +322,7 @@ class BMICalculatorGUI:
 
         self.update_history()
         self.update_chart()  # Initial chart update
+
 
 
     def create_labeled_entry(self, parent, text, widget_type, row):
@@ -388,25 +389,57 @@ class BMICalculatorGUI:
             self.canvas.draw()
             return
 
+        # Filter data based on selected date range
+        selected_range = self.date_range_var.get()
+        end_date = max(dates)
+        start_date = None
+
+        if selected_range == "Last 7 Days":
+            start_date = end_date - datetime.timedelta(days=7)
+        elif selected_range == "Last 2 Weeks":
+            start_date = end_date - datetime.timedelta(days=14)
+        elif selected_range == "Last 3 Weeks":
+            start_date = end_date - datetime.timedelta(days=21)
+        elif selected_range == "Last Month":
+            start_date = end_date - datetime.timedelta(days=30)
+        elif selected_range == "Last 3 Months":
+            start_date = end_date - datetime.timedelta(days=90)
+        elif selected_range == "Last 6 Months":
+            start_date = end_date - datetime.timedelta(days=180)
+        elif selected_range == "Last Year":
+            start_date = end_date - datetime.timedelta(days=365)
+
+        # Filter data to include only entries within the selected range
+        filtered_dates = [date for date in dates if start_date <= date <= end_date]
+        filtered_bmis = [bmis[dates.index(date)] for date in filtered_dates]
+
+        if not filtered_dates:
+            self.ax.set_title('BMI Trend')
+            self.ax.set_xlabel('Date')
+            self.ax.set_ylabel('BMI')
+            self.ax.grid(True)
+            self.ax.set_xticks([])  # Remove x-axis ticks if there's no filtered data
+            self.ax.set_yticks([])  # Remove y-axis ticks if there's no filtered data
+            self.canvas.draw()
+            return
+
         # Plotting
-        self.ax.plot(dates, bmis, marker='o')
+        self.ax.plot(filtered_dates, filtered_bmis, marker='o')
         self.ax.set_xlabel('Date')
         self.ax.set_ylabel('BMI')
         self.ax.set_title('BMI Trend')
         self.ax.grid(True)
 
         # Determine the range of dates to adjust tick frequency
-        date_range = (max(dates) - min(dates)).days
-        selected_range = self.date_range_var.get()
+        date_range = (max(filtered_dates) - min(filtered_dates)).days
 
-        # Adjust tick frequency based on the selected date range
-        if selected_range == "Days":
+        if date_range <= 7:
             self.ax.xaxis.set_major_locator(mdates.DayLocator())
-        elif selected_range == "Weeks":
+        elif date_range <= 30:
             self.ax.xaxis.set_major_locator(mdates.WeekdayLocator())
-        elif selected_range == "Months":
+        elif date_range <= 90:
             self.ax.xaxis.set_major_locator(mdates.MonthLocator())
-        elif selected_range == "Years":
+        else:
             self.ax.xaxis.set_major_locator(mdates.YearLocator())
 
         # Format dates to "day-month-year"
@@ -419,6 +452,7 @@ class BMICalculatorGUI:
         plt.tight_layout()
 
         self.canvas.draw()
+
 
     def show_exercise_suggestions(self):
         ExerciseSuggestionWindow(self.master)
