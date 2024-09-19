@@ -306,23 +306,29 @@ class BMICalculatorGUI:
         options = ["Last 7 Days", "Last 7 Days", "Last 2 Weeks", "Last 3 Weeks", "Last Month", "Last 3 Months", "Last 6 Months", "Last Year"]
 
         # Create OptionMenu
-        self.date_range_menu = OptionMenu(
-            chart_frame,
-            self.date_range_var,
-            *options
-        )
+        self.date_range_menu = OptionMenu(chart_frame, self.date_range_var, *options)
         self.date_range_menu.pack(pady=10)
 
-        # Set the command to call when the option changes
-        self.date_range_var.trace("w", self.update_chart)
+        # Radio buttons for graph type
+        self.graph_type_var = StringVar()
+        self.graph_type_var.set("Line")  # Default graph type
 
+        line_radio = Radiobutton(chart_frame, text="Line Graph", variable=self.graph_type_var, value="Line", command=self.update_chart)
+        line_radio.pack(anchor=W)
+
+        bar_radio = Radiobutton(chart_frame, text="Bar Graph", variable=self.graph_type_var, value="Bar", command=self.update_chart)
+        bar_radio.pack(anchor=W)
+
+        # Create figure and canvas for plotting
         self.fig, self.ax = plt.subplots(figsize=(6, 4), dpi=100)
         self.canvas = FigureCanvasTkAgg(self.fig, master=chart_frame)
         self.canvas.get_tk_widget().pack(expand=True, fill=BOTH)
 
+        # Bind the dropdown selection to update the chart
+        self.date_range_var.trace("w", self.update_chart)
+
         self.update_history()
         self.update_chart()  # Initial chart update
-
 
 
     def create_labeled_entry(self, parent, text, widget_type, row):
@@ -373,7 +379,8 @@ class BMICalculatorGUI:
             
     # The following section shows the visual representation of BMI over time in the form of a graph
     def update_chart(self, *args):
-        self.ax.clear()
+        self.ax.clear()  # Clear previous chart
+
         # Convert the date strings from the BMI data entries into datetime objects for plotting
         dates = [datetime.datetime.strptime(entry['date'], "%Y-%m-%d") for entry in self.calculator.bmi_data]
         bmis = [entry['bmi'] for entry in self.calculator.bmi_data]
@@ -423,8 +430,16 @@ class BMICalculatorGUI:
             self.canvas.draw()
             return
 
+        # Determine the type of graph to plot
+        plot_type = self.graph_type_var.get()  # Assume plot_type_var is a StringVar holding the plot type
+
         # Plotting
-        self.ax.plot(filtered_dates, filtered_bmis, marker='o')
+        if plot_type == "Line":
+            self.ax.plot(filtered_dates, filtered_bmis, marker='o')
+        elif plot_type == "Bar":
+            self.ax.bar(filtered_dates, filtered_bmis, width=0.5, color='skyblue')
+
+        # Set labels and title
         self.ax.set_xlabel('Date')
         self.ax.set_ylabel('BMI')
         self.ax.set_title('BMI Trend')
@@ -452,6 +467,7 @@ class BMICalculatorGUI:
         plt.tight_layout()
 
         self.canvas.draw()
+
 
 
     def show_exercise_suggestions(self):
