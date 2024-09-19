@@ -1,7 +1,6 @@
 import os
 import json
 import datetime
-import customtkinter as ctk
 from tkinter import *
 from tkinter.ttk import *
 from tkinter import messagebox
@@ -17,10 +16,6 @@ BMI_OVERWEIGHT = 30.0
 BMI_DECIMAL_PLACES = 1
 DATA_DIR = "user_data"
 USERS_FILE = "users.json"
-
-# Set the color theme for customtkinter
-ctk.set_appearance_mode("light")  # Light mode
-ctk.set_default_color_theme("blue")  # Light blue theme
 
 # Class representing a user with username and password attributes
 class User:
@@ -144,28 +139,30 @@ class LoginWindow:
         self.on_login_success = on_login_success
 
         self.master.title("Login")
-        self.master.geometry("300x300")  # Increased height for spacing
+        self.master.geometry("300x200")  # Increased height for spacing
 
         self.create_widgets()
 
     # Create login form fields for username, password, and buttons
     def create_widgets(self):
-        self.username_label = ctk.CTkLabel(self.master, text="Username:")
-        self.username_label.pack(pady=3)
+        self.username_label = Label(self.master, text="Username:")
+        self.username_label.pack(pady=5)
 
-        self.username_entry = ctk.CTkEntry(self.master, placeholder_text="Enter your username")
-        self.username_entry.pack(pady=5)
+        self.username_entry = Entry(self.master)
+        self.username_entry.pack()
 
-        self.password_label = ctk.CTkLabel(self.master, text="Password:")
-        self.password_label.pack(pady=3)
+        self.password_label = Label(self.master, text="Password:")
+        self.password_label.pack(pady=5)
 
-        self.password_entry = ctk.CTkEntry(self.master, show="*", placeholder_text="Enter your password")
-        self.password_entry.pack(pady=5)
+        self.password_entry = Entry(self.master, show="*")
+        self.password_entry.pack()
 
-        self.login_button = ctk.CTkButton(self.master, text="Login", command=self.login)
-        self.login_button.pack(pady=5)
+        # Button to login
+        self.login_button = Button(self.master, text="Login", command=self.login)
+        self.login_button.pack(pady=3)
 
-        self.register_button = ctk.CTkButton(self.master, text="Register New Account", command=self.open_register_window)
+        # Button to open the registration window
+        self.register_button = Button(self.master, text="Register New Account", command=self.open_register_window)
         self.register_button.pack(pady=15)
 
     # Perform login when the user clicks the login button
@@ -192,26 +189,25 @@ class RegisterWindow:
         self.user_manager = user_manager
 
         self.master.title("Register")
-        self.master.geometry("300x300")
+        self.master.geometry("300x150")
 
         self.create_widgets()
     
     # Create registration form fields for username, password, and buttons
     def create_widgets(self):
-        self.username_label = ctk.CTkLabel(self.master, text="Username:")
-        self.username_label.pack(pady=5)
+        self.username_label = Label(self.master, text="Username:")
+        self.username_label.pack()
+        self.username_entry = Entry(self.master)
+        self.username_entry.pack()
 
-        self.username_entry = ctk.CTkEntry(self.master, placeholder_text="Enter a username")
-        self.username_entry.pack(pady=5)
+        self.password_label = Label(self.master, text="Password:")
+        self.password_label.pack()
+        self.password_entry = Entry(self.master, show="*") # Hide password characters
+        self.password_entry.pack()
 
-        self.password_label = ctk.CTkLabel(self.master, text="Password:")
-        self.password_label.pack(pady=5)
-
-        self.password_entry = ctk.CTkEntry(self.master, show="*", placeholder_text="Enter a password")
-        self.password_entry.pack(pady=5)
-
-        self.register_button = ctk.CTkButton(self.master, text="Register", command=self.register)
-        self.register_button.pack(pady=10)
+        # Button to register the new user
+        self.register_button = Button(self.master, text="Register", command=self.register)
+        self.register_button.pack()
 
     # Register the user when the user clicks the register button
     def register(self):
@@ -245,15 +241,15 @@ class BMICalculatorGUI:
         self.create_chart_tab()
 
     def create_input_tab(self):
-        input_frame = ctk.CTkFrame(self.notebook)
+        input_frame = Frame(self.notebook, padding="10")
         self.notebook.add(input_frame, text="Input")
 
         # Create a frame to hold the input fields and calendar side by side
-        content_frame = ctk.CTkFrame(input_frame)
+        content_frame = Frame(input_frame)
         content_frame.pack(expand=True, fill=BOTH)
-        
+
         # Left frame for input fields
-        left_frame = ctk.CTkFrame(content_frame)
+        left_frame = Frame(content_frame)
         left_frame.pack(side=LEFT, padx=(0, 10), expand=True, fill=BOTH)
 
         # Add widgets to the left frame
@@ -262,7 +258,7 @@ class BMICalculatorGUI:
         self.height_entry = self.create_labeled_entry(left_frame, "Height (cm):", Entry, 2)
 
         # Create a button frame to center buttons
-        button_frame = ctk.CTkFrame(left_frame, corner_radius=10)
+        button_frame = Frame(left_frame)
         button_frame.grid(row=3, column=0, columnspan=2, pady=10)
 
         self.create_button(button_frame, "Calculate BMI", self.calculate_bmi)
@@ -272,7 +268,7 @@ class BMICalculatorGUI:
         self.create_button(left_frame, "View Exercise Suggestions", self.show_exercise_suggestions, row=5)
 
         # Right frame for calendar
-        right_frame = ctk.CTkFrame(content_frame, corner_radius=10)
+        right_frame = Frame(content_frame)
         right_frame.pack(side=RIGHT, padx=(10, 0), fill=BOTH)
 
         # Add calendar to the right frame
@@ -302,28 +298,45 @@ class BMICalculatorGUI:
         chart_frame = Frame(self.notebook, padding="10")
         self.notebook.add(chart_frame, text="BMI Chart")
 
+        # Dropdown for date range selection
+        self.date_range_var = StringVar()
+        self.date_range_var.set("Months")  # Set the default value
+
+        # Options list
+        options = ["Days", "Days", "Weeks", "Months", "Years"]
+
+        # Create OptionMenu
+        self.date_range_menu = OptionMenu(
+            chart_frame,
+            self.date_range_var,
+            *options
+        )
+        self.date_range_menu.pack(pady=10)
+
+        # Set the command to call when the option changes
+        self.date_range_var.trace("w", self.update_chart)
+
         self.fig, self.ax = plt.subplots(figsize=(6, 4), dpi=100)
         self.canvas = FigureCanvasTkAgg(self.fig, master=chart_frame)
         self.canvas.get_tk_widget().pack(expand=True, fill=BOTH)
 
         self.update_history()
-        self.update_chart()
+        self.update_chart()  # Initial chart update
+
 
     def create_labeled_entry(self, parent, text, widget_type, row):
-        label = ctk.CTkLabel(parent, text=text)
-        label.grid(row=row, column=0, sticky=W, padx=10, pady=5)
-        entry = ctk.CTkEntry(parent, placeholder_text=text)
-        entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        Label(parent, text=text).grid(row=row, column=0, sticky=W)
+        entry = widget_type(parent)
+        entry.grid(row=row, column=1, sticky=W)
         return entry
 
     def create_button(self, parent, text, command, row=None, expand=False):
-        button = ctk.CTkButton(parent, text=text, command=command, corner_radius=10)
+        button = Button(parent, text=text, command=command)
         if row is not None:
-            button.grid(row=row, column=0, columnspan=2, pady=5, padx=5, sticky="ew")
+            button.grid(row=row, column=0, columnspan=2)
         else:
-            button.pack(expand=expand, pady=5, padx=5)
+            button.pack(expand=expand)
         return button
-
 
     def calculate_bmi(self):
         try:
@@ -356,9 +369,9 @@ class BMICalculatorGUI:
                 messagebox.showerror("Error", "Failed to remove entry.")
         else:
             messagebox.showwarning("Warning", "Please select an entry to remove.")
-
+            
     # The following section shows the visual representation of BMI over time in the form of a graph
-    def update_chart(self):
+    def update_chart(self, *args):
         self.ax.clear()
         # Convert the date strings from the BMI data entries into datetime objects for plotting
         dates = [datetime.datetime.strptime(entry['date'], "%Y-%m-%d") for entry in self.calculator.bmi_data]
@@ -375,6 +388,7 @@ class BMICalculatorGUI:
             self.canvas.draw()
             return
 
+        # Plotting
         self.ax.plot(dates, bmis, marker='o')
         self.ax.set_xlabel('Date')
         self.ax.set_ylabel('BMI')
@@ -383,17 +397,17 @@ class BMICalculatorGUI:
 
         # Determine the range of dates to adjust tick frequency
         date_range = (max(dates) - min(dates)).days
+        selected_range = self.date_range_var.get()
 
-        # Adjust tick frequency based on the date range
-        if date_range <= 7:
-            # Use daily ticks for a range of up to a week
+        # Adjust tick frequency based on the selected date range
+        if selected_range == "Days":
             self.ax.xaxis.set_major_locator(mdates.DayLocator())
-        elif date_range <= 31:
-            # Use weekly ticks for a range of up to a month
+        elif selected_range == "Weeks":
             self.ax.xaxis.set_major_locator(mdates.WeekdayLocator())
-        else:
-            # Use monthly ticks for longer ranges
+        elif selected_range == "Months":
             self.ax.xaxis.set_major_locator(mdates.MonthLocator())
+        elif selected_range == "Years":
+            self.ax.xaxis.set_major_locator(mdates.YearLocator())
 
         # Format dates to "day-month-year"
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%m-%Y'))
