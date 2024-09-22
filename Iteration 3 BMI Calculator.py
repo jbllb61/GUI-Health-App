@@ -10,9 +10,10 @@ import matplotlib.dates as mdates
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 # Constants
-BMI_UNDERWEIGHT = 18.5
-BMI_NORMAL = 25.0
-BMI_OVERWEIGHT = 30.0
+BMI_UNDERWEIGHT = 18.4
+BMI_NORMAL = 29.4
+BMI_OVERWEIGHT = 39.9
+BMI_OBESE = 40.0
 BMI_DECIMAL_PLACES = 1
 DATA_DIR = "user_data"
 USERS_FILE = "users.json"
@@ -69,11 +70,11 @@ class BMICalculator:
         return weight / ((height / 100) ** 2)
 
     def interpret_bmi(self, bmi):
-        if bmi < BMI_UNDERWEIGHT:
+        if bmi <= BMI_UNDERWEIGHT:
             return "Underweight"
-        elif BMI_UNDERWEIGHT <= bmi < BMI_NORMAL:
+        elif BMI_UNDERWEIGHT < bmi <= BMI_NORMAL:
             return "Normal weight"
-        elif BMI_NORMAL <= bmi < BMI_OVERWEIGHT:
+        elif BMI_NORMAL < bmi <= BMI_OVERWEIGHT:
             return "Overweight"
         else:
             return "Obese"
@@ -257,6 +258,11 @@ class BMICalculatorGUI:
         self.weight_entry = self.create_labeled_entry(left_frame, "Weight (kg):", Entry, 1)
         self.height_entry = self.create_labeled_entry(left_frame, "Height (cm):", Entry, 2)
 
+        # Set today's date as the default value
+        today = datetime.date.today().strftime("%Y-%m-%d")
+        self.date_entry.insert(0, today)
+        self.calendar.selection_set(today)
+        
         # Create a button frame to center buttons
         button_frame = Frame(left_frame)
         button_frame.grid(row=3, column=0, columnspan=2, pady=10)
@@ -266,6 +272,24 @@ class BMICalculatorGUI:
         self.result_label.grid(row=4, column=0, columnspan=2, pady=10)
 
         self.create_button(left_frame, "View Exercise Suggestions", self.show_exercise_suggestions, row=5)
+
+        # Add BMI ranges section
+        ranges_frame = Frame(left_frame)
+        ranges_frame.grid(row=6, column=0, columnspan=2, pady=10)
+
+        Label(ranges_frame, text="BMI Ranges:", font=('Arial', 10, 'bold')).grid(row=0, column=0, columnspan=2, pady=5)
+
+        Label(ranges_frame, text="Underweight", background="white").grid(row=1, column=0, sticky=W, padx=5)
+        Label(ranges_frame, text=f"Up to {BMI_UNDERWEIGHT}", background="white").grid(row=1, column=1, sticky=W, padx=5)
+
+        Label(ranges_frame, text="Normal weight", background="lightgreen").grid(row=2, column=0, sticky=W, padx=5)
+        Label(ranges_frame, text=f"From {BMI_UNDERWEIGHT+0.1} to {BMI_NORMAL}", background="lightgreen").grid(row=2, column=1, sticky=W, padx=5)
+
+        Label(ranges_frame, text="Overweight", background="orange").grid(row=3, column=0, sticky=W, padx=5)
+        Label(ranges_frame, text=f"From {BMI_NORMAL+0.1} to {BMI_OVERWEIGHT}", background="orange").grid(row=3, column=1, sticky=W, padx=5)
+
+        Label(ranges_frame, text="Obese", background="brown1").grid(row=4, column=0, sticky=W, padx=5)
+        Label(ranges_frame, text=f"From {BMI_OVERWEIGHT+0.1}+", background="brown1").grid(row=4, column=1, sticky=W, padx=5)
 
         # Right frame for calendar
         right_frame = Frame(content_frame)
@@ -358,11 +382,23 @@ class BMICalculatorGUI:
         except ValueError:
             messagebox.showerror("Error", "Please enter valid weight and height values.")
 
+    def set_item_color(self, item, interpretation):
+        color_map = {
+            "Underweight": "white",
+            "Normal weight": "lightgreen",
+            "Overweight": "orange",
+            "Obese": "brown1"
+        }
+        color = color_map.get(interpretation, "white")  # Default to white if interpretation is unknown
+        self.history_tree.item(item, tags=(color,))
+        self.history_tree.tag_configure(color, background=color)
+    
     def update_history(self):
         for i in self.history_tree.get_children():
             self.history_tree.delete(i)
         for entry in self.calculator.bmi_data:
-            self.history_tree.insert("", "end", values=(entry["date"], entry["bmi"], entry["interpretation"]))
+            item = self.history_tree.insert("", "end", values=(entry["date"], entry["bmi"], entry["interpretation"]))
+            self.set_item_color(item, entry["interpretation"])
 
     def remove_entry(self):
         selected_item = self.history_tree.selection()
