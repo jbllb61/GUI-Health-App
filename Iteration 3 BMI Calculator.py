@@ -258,11 +258,10 @@ class BMICalculatorGUI:
         self.weight_entry = self.create_labeled_entry(left_frame, "Weight (kg):", Entry, 1)
         self.height_entry = self.create_labeled_entry(left_frame, "Height (cm):", Entry, 2)
 
-        # Set today's date as the default value
+        # Set today's date as default value
         today = datetime.date.today().strftime("%Y-%m-%d")
         self.date_entry.insert(0, today)
-        self.calendar.selection_set(today)
-        
+
         # Create a button frame to center buttons
         button_frame = Frame(left_frame)
         button_frame.grid(row=3, column=0, columnspan=2, pady=10)
@@ -298,6 +297,9 @@ class BMICalculatorGUI:
         # Add calendar to the right frame
         self.calendar = Calendar(right_frame, selectmode='day', date_pattern='yyyy-mm-dd')
         self.calendar.pack(fill=BOTH)
+
+        # Set the calendar to today's date
+        self.calendar.selection_set(datetime.date.today())
 
         # Bind the calendar selection to update the date entry
         self.calendar.bind("<<CalendarSelected>>", self.update_date_entry)
