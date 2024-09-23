@@ -23,6 +23,8 @@ class User:
     def __init__(self, username, password):
         self.username = username
         self.password = password
+        self.latest_weight = None
+        self.latest_height = None
 
 # Class to manage users including registration, authentication, and file operations
 class UserManager:
@@ -37,12 +39,22 @@ class UserManager:
                 user_data = json.load(f)
                 # Convert JSON data into User objects
                 self.users = {username: User(username, data['password']) for username, data in user_data.items()}
+        # Load latest height and weight
+        for username, user in self.users.items():
+                    user.latest_weight = user_data[username].get('latest_weight')
+                    user.latest_height = user_data[username].get('latest_height')
         else:
             self.save_users()
 
     # Save current user data into the JSON file
     def save_users(self):
-        user_data = {username: {'password': user.password} for username, user in self.users.items()}
+        user_data = {
+            username: {
+                'password': user.password,
+                'latest_weight': user.latest_weight,
+                'latest_height': user.latest_height
+            } for username, user in self.users.items()
+        }
         with open(USERS_FILE, "w") as f:
             json.dump(user_data, f)
 
@@ -53,6 +65,17 @@ class UserManager:
         self.users[username] = User(username, password)
         self.save_users()
         return True
+    
+    def update_user_data(self, username, weight, height):
+        if username in self.users:
+            self.users[username].latest_weight = weight
+            self.users[username].latest_height = height
+            self.save_users()
+            
+    def get_user_data(self, username):
+        if username in self.users:
+            return self.users[username].latest_weight, self.users[username].latest_height
+        return None, None
 
     # Authenticate the user by checking the username and password
     def authenticate_user(self, username, password):
@@ -61,8 +84,9 @@ class UserManager:
         return self.users[username].password == password
 
 class BMICalculator:
-    def __init__(self, username):
+    def __init__(self, username, user_manager):
         self.username = username
+        self.user_manager = user_manager
         self.bmi_data = []
         self.load_data()
 
@@ -82,16 +106,23 @@ class BMICalculator:
     def add_bmi_entry(self, date, weight, height):
         bmi = self.calculate_bmi(weight, height)
         interpretation = self.interpret_bmi(bmi)
+        
         entry = {
-            "date": date.strftime("%Y-%m-%d"),
             "bmi": round(bmi, BMI_DECIMAL_PLACES),
             "weight": weight,
             "height": height,
             "interpretation": interpretation
         }
-        self.bmi_data.append(entry)
-        self.bmi_data.sort(key=lambda x: x["date"])
+        
+        # Store the entry using the formatted date as the key
+        self.bmi_data[date.strftime("%Y-%m-%d")] = entry
+
+        # Sorted order of dates for display or graphing
+        sorted_dates = sorted(self.bmi_data.keys())
+
         self.save_data()
+        self.user_manager.update_user_data(self.username, weight, height)
+        
         return entry
 
     def remove_bmi_entry(self, index):
@@ -110,10 +141,19 @@ class BMICalculator:
     def load_data(self):
         file_path = os.path.join(DATA_DIR, f"{self.username}_bmi_data.json")
         if os.path.exists(file_path):
-            with open(file_path, "r") as f:
-                self.bmi_data = json.load(f)
+            try:
+                with open(file_path, "r") as f:
+                    file_content = f.read()
+                    if not file_content.strip():  # Check if the file is empty
+                        self.bmi_data = {}  # Initialize with empty data
+                    else:
+                        self.bmi_data = json.loads(file_content)  # Load valid JSON
+            except json.JSONDecodeError:
+                print("Error decoding JSON, initializing with empty data")
+                self.bmi_data = {}  # Initialize with empty data
         else:
-            self.save_data()
+            self.save_data()  # Call save_data if the file doesn't exist
+        
 
     def analyze_bmi_trend(self):
         if len(self.bmi_data) < 2:
@@ -223,16 +263,18 @@ class RegisterWindow:
             messagebox.showerror("Registration Failed", "Username already exists")
 
 class BMICalculatorGUI:
-    def __init__(self, master, username):
+    def __init__(self, master, username, user_manager):
         self.master = master
         self.master.title(f"BMI Calculator - {username}")
-        self.calculator = BMICalculator(username)
+        self.user_manager = user_manager
+        self.calculator = BMICalculator(username, user_manager)
 
         self.master.minsize(600, 400)
         self.master.geometry("600x400")
 
         self.create_widgets()
-
+        self.load_user_data()
+        
     def create_widgets(self):
         self.notebook = Notebook(self.master)
         self.notebook.pack(expand=True, fill=BOTH)
@@ -240,6 +282,15 @@ class BMICalculatorGUI:
         self.create_input_tab()
         self.create_history_tab()
         self.create_chart_tab()
+        
+    def load_user_data(self):
+        weight, height = self.user_manager.get_user_data(self.calculator.username)
+        if weight:
+            self.weight_entry.delete(0, END)
+            self.weight_entry.insert(0, str(weight))
+        if height:
+            self.height_entry.delete(0, END)
+            self.height_entry.insert(0, str(height))
 
     def create_input_tab(self):
         input_frame = Frame(self.notebook, padding="10")
@@ -398,8 +449,11 @@ class BMICalculatorGUI:
     def update_history(self):
         for i in self.history_tree.get_children():
             self.history_tree.delete(i)
-        for entry in self.calculator.bmi_data:
-            item = self.history_tree.insert("", "end", values=(entry["date"], entry["bmi"], entry["interpretation"]))
+        
+        # Iterate over the sorted keys to maintain order
+        for date in sorted(self.calculator.bmi_data.keys()):
+            entry = self.calculator.bmi_data[date]  # Get the entry using the date key
+            item = self.history_tree.insert("", "end", values=(date, entry["bmi"], entry["interpretation"]))
             self.set_item_color(item, entry["interpretation"])
 
     def remove_entry(self):
@@ -420,11 +474,16 @@ class BMICalculatorGUI:
         self.ax.clear()  # Clear previous chart
 
         # Convert the date strings from the BMI data entries into datetime objects for plotting
-        dates = [datetime.datetime.strptime(entry['date'], "%Y-%m-%d") for entry in self.calculator.bmi_data]
-        bmis = [entry['bmi'] for entry in self.calculator.bmi_data]
+        dates = []
+        bmis = []
+
+        for date in sorted(self.calculator.bmi_data.keys()):  # Iterate over sorted keys
+            entry = self.calculator.bmi_data[date]  # Get the corresponding entry
+            dates.append(datetime.datetime.strptime(date, "%Y-%m-%d"))
+            bmis.append(entry['bmi'])
 
         # Check if there is any data to plot
-        if not self.calculator.bmi_data:
+        if not bmis:  # Just check bmis since it's the main data we're plotting
             self.ax.set_title('BMI Trend')
             self.ax.set_xlabel('Date')
             self.ax.set_ylabel('BMI')
@@ -506,8 +565,6 @@ class BMICalculatorGUI:
 
         self.canvas.draw()
 
-
-
     def show_exercise_suggestions(self):
         ExerciseSuggestionWindow(self.master)
 
@@ -570,7 +627,7 @@ def main():
     def on_login_success(username):
         login_window.master.destroy()
         new_root = Tk()
-        app = BMICalculatorGUI(new_root, username)
+        app = BMICalculatorGUI(new_root, username, user_manager)
         new_root.mainloop()
 
     login_window = LoginWindow(root, user_manager, on_login_success)
