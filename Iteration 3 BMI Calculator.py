@@ -25,6 +25,7 @@ class User:
         self.password = password
         self.latest_weight = None
         self.latest_height = None
+        self.stay_logged_in = False
 
 # Class to manage users including registration, authentication, and file operations
 class UserManager:
@@ -39,10 +40,11 @@ class UserManager:
                 user_data = json.load(f)
                 # Convert JSON data into User objects
                 self.users = {username: User(username, data['password']) for username, data in user_data.items()}
-        # Load latest height and weight
+        # Load latest height, weight and check if user wants to stay logged in
         for username, user in self.users.items():
                     user.latest_weight = user_data[username].get('latest_weight')
                     user.latest_height = user_data[username].get('latest_height')
+                    user.stay_logged_in = user_data[username].get('stay_logged_in', False)
         else:
             self.save_users()
 
@@ -52,7 +54,8 @@ class UserManager:
             username: {
                 'password': user.password,
                 'latest_weight': user.latest_weight,
-                'latest_height': user.latest_height
+                'latest_height': user.latest_height,
+                'stay_logged_in': user.stay_logged_in
             } for username, user in self.users.items()
         }
         with open(USERS_FILE, "w") as f:
@@ -82,6 +85,114 @@ class UserManager:
         if username not in self.users:
             return False
         return self.users[username].password == password
+    
+    # Method for logged in account persistence
+    def set_stay_logged_in(self, username, stay_logged_in):
+        if username in self.users:
+            self.users[username].stay_logged_in = stay_logged_in
+            self.save_users()
+    
+    # Check if user wishes to stay logged in
+    def get_logged_in_user(self):
+        for username, user in self.users.items():
+            if user.stay_logged_in:
+                return username
+        return None
+
+# Class for handling the login window GUI
+class LoginWindow:
+    def __init__(self, master, user_manager, on_login_success):
+        self.master = master
+        self.user_manager = user_manager
+        self.on_login_success = on_login_success
+
+        self.master.title("Login")
+        self.master.geometry("300x250") 
+
+        self.create_widgets()
+
+    # Create login form fields for username, password, and buttons
+    def create_widgets(self):
+        self.username_label = Label(self.master, text="Username:")
+        self.username_label.pack(pady=5)
+
+        self.username_entry = Entry(self.master)
+        self.username_entry.pack()
+
+        self.password_label = Label(self.master, text="Password:")
+        self.password_label.pack(pady=5)
+
+        self.password_entry = Entry(self.master, show="*")
+        self.password_entry.pack()
+
+        self.stay_logged_in_var = BooleanVar()
+        self.stay_logged_in_checkbox = Checkbutton(self.master, text="Stay logged in", variable=self.stay_logged_in_var)
+        self.stay_logged_in_checkbox.pack(pady=5)
+
+        # Button to login
+        self.login_button = Button(self.master, text="Login", command=self.login)
+        self.login_button.pack(pady=3)
+
+        # Button to open the registration window
+        self.register_button = Button(self.master, text="Register New Account", command=self.open_register_window)
+        self.register_button.pack(pady=15)
+
+    # Perform login when the user clicks the login button
+    def login(self):
+        username = self.username_entry.get()
+        password = self.password_entry.get()
+
+        # Call UserManager to authenticate the username and password
+        if self.user_manager.authenticate_user(username, password):
+            self.user_manager.set_stay_logged_in(username, self.stay_logged_in_var.get())
+            self.master.withdraw()  # Hide the login window after successful login
+            self.on_login_success(username) # Call the callback to move forward in the app
+        else:
+            messagebox.showerror("Login Failed", "Invalid username or password")
+
+    # Open a new window for user registration
+    def open_register_window(self):
+        register_window = Toplevel(self.master)
+        RegisterWindow(register_window, self.user_manager)
+
+# Class for handling the user registration window GUI
+class RegisterWindow:
+    def __init__(self, master, user_manager):
+        self.master = master
+        self.user_manager = user_manager
+
+        self.master.title("Register")
+        self.master.geometry("300x150")
+
+        self.create_widgets()
+    
+    # Create registration form fields for username, password, and buttons
+    def create_widgets(self):
+        self.username_label = Label(self.master, text="Username:")
+        self.username_label.pack()
+        self.username_entry = Entry(self.master)
+        self.username_entry.pack()
+
+        self.password_label = Label(self.master, text="Password:")
+        self.password_label.pack()
+        self.password_entry = Entry(self.master, show="*") # Hide password characters
+        self.password_entry.pack()
+
+        # Button to register the new user
+        self.register_button = Button(self.master, text="Register", command=self.register)
+        self.register_button.pack()
+
+    # Register the user when the user clicks the register button
+    def register(self):
+        username = self.username_entry.get()
+        password = self.password_entry.get()
+
+        # Call UserManager to register the new user
+        if self.user_manager.register_user(username, password):
+            messagebox.showinfo("Registration Successful", "You can now login with your new account")
+            self.master.destroy() # Close the registration window after success
+        else:
+            messagebox.showerror("Registration Failed", "Username already exists")
 
 class BMICalculator:
     def __init__(self, username, user_manager):
@@ -178,96 +289,6 @@ class BMICalculator:
 
         return f"Your BMI has been {trend}. Total change: {bmi_change:.1f}"
 
-# Class for handling the login window GUI
-class LoginWindow:
-    def __init__(self, master, user_manager, on_login_success):
-        self.master = master
-        self.user_manager = user_manager
-        self.on_login_success = on_login_success
-
-        self.master.title("Login")
-        self.master.geometry("300x200")  # Increased height for spacing
-
-        self.create_widgets()
-
-    # Create login form fields for username, password, and buttons
-    def create_widgets(self):
-        self.username_label = Label(self.master, text="Username:")
-        self.username_label.pack(pady=5)
-
-        self.username_entry = Entry(self.master)
-        self.username_entry.pack()
-
-        self.password_label = Label(self.master, text="Password:")
-        self.password_label.pack(pady=5)
-
-        self.password_entry = Entry(self.master, show="*")
-        self.password_entry.pack()
-
-        # Button to login
-        self.login_button = Button(self.master, text="Login", command=self.login)
-        self.login_button.pack(pady=3)
-
-        # Button to open the registration window
-        self.register_button = Button(self.master, text="Register New Account", command=self.open_register_window)
-        self.register_button.pack(pady=15)
-
-    # Perform login when the user clicks the login button
-    def login(self):
-        username = self.username_entry.get()
-        password = self.password_entry.get()
-
-        # Call UserManager to authenticate the username and password
-        if self.user_manager.authenticate_user(username, password):
-            self.master.withdraw()  # Hide the login window after successful login
-            self.on_login_success(username) # Call the callback to move forward in the app
-        else:
-            messagebox.showerror("Login Failed", "Invalid username or password")
-
-    # Open a new window for user registration
-    def open_register_window(self):
-        register_window = Toplevel(self.master)
-        RegisterWindow(register_window, self.user_manager)
-
-# Class for handling the user registration window GUI
-class RegisterWindow:
-    def __init__(self, master, user_manager):
-        self.master = master
-        self.user_manager = user_manager
-
-        self.master.title("Register")
-        self.master.geometry("300x150")
-
-        self.create_widgets()
-    
-    # Create registration form fields for username, password, and buttons
-    def create_widgets(self):
-        self.username_label = Label(self.master, text="Username:")
-        self.username_label.pack()
-        self.username_entry = Entry(self.master)
-        self.username_entry.pack()
-
-        self.password_label = Label(self.master, text="Password:")
-        self.password_label.pack()
-        self.password_entry = Entry(self.master, show="*") # Hide password characters
-        self.password_entry.pack()
-
-        # Button to register the new user
-        self.register_button = Button(self.master, text="Register", command=self.register)
-        self.register_button.pack()
-
-    # Register the user when the user clicks the register button
-    def register(self):
-        username = self.username_entry.get()
-        password = self.password_entry.get()
-
-        # Call UserManager to register the new user
-        if self.user_manager.register_user(username, password):
-            messagebox.showinfo("Registration Successful", "You can now login with your new account")
-            self.master.destroy() # Close the registration window after success
-        else:
-            messagebox.showerror("Registration Failed", "Username already exists")
-
 class BMICalculatorGUI:
     def __init__(self, master, username, user_manager):
         self.master = master
@@ -297,6 +318,19 @@ class BMICalculatorGUI:
         if height:
             self.height_entry.delete(0, END)
             self.height_entry.insert(0, str(height))
+
+    def logout(self):
+        self.user_manager.set_stay_logged_in(self.username, False)
+        self.master.destroy()
+        new_root = Tk()
+        login_window = LoginWindow(new_root, self.user_manager, self.on_login_success)
+        new_root.mainloop()
+
+    def on_login_success(self, username):
+        self.master.destroy()
+        new_root = Tk()
+        app = BMICalculatorGUI(new_root, username, self.user_manager)
+        new_root.mainloop()
 
     def create_input_tab(self):
         input_frame = Frame(self.notebook, padding="10")
@@ -346,6 +380,10 @@ class BMICalculatorGUI:
 
         Label(ranges_frame, text="Obese", background="brown1").grid(row=4, column=0, sticky=W, padx=5)
         Label(ranges_frame, text=f"From {BMI_OVERWEIGHT+0.1}+", background="brown1").grid(row=4, column=1, sticky=W, padx=5)
+
+        # Add logout button below BMI ranges
+        self.logout_button = Button(left_frame, text="Logout", command=self.logout)
+        self.logout_button.grid(row=7, column=0, columnspan=2, pady=10)
 
         # Right frame for calendar
         right_frame = Frame(content_frame)
@@ -643,8 +681,12 @@ def main():
         app = BMICalculatorGUI(new_root, username, user_manager)
         new_root.mainloop()
 
-    login_window = LoginWindow(root, user_manager, on_login_success)
-    root.mainloop()
+    logged_in_user = user_manager.get_logged_in_user()
+    if logged_in_user:
+        on_login_success(logged_in_user)
+    else:
+        login_window = LoginWindow(root, user_manager, on_login_success)
+        root.mainloop()
 
 if __name__ == "__main__":
     main()
