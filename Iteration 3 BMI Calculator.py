@@ -483,20 +483,13 @@ class BMICalculatorGUI:
         dates = []
         bmis = []
 
+        # Iterate over the sorted BMI data entries and fill dates and bmis lists
         for date, entry in sorted(self.calculator.bmi_data.items()):
             dates.append(datetime.datetime.strptime(date, "%Y-%m-%d"))
             bmis.append(entry['bmi'])
-        if isinstance(self.calculator.bmi_data, dict):
-            # Handle dictionary data structure
-            for date, entry in sorted(self.calculator.bmi_data.items()):
-                dates.append(datetime.datetime.strptime(date, "%Y-%m-%d"))
-                bmis.append(entry['bmi'])
-        else:
-            print(f"Unexpected data type for bmi_data: {type(self.calculator.bmi_data)}")
-            return
 
         # Check if there is any data to plot
-        if not bmis:
+        if not dates:
             self.ax.set_title('BMI Trend')
             self.ax.set_xlabel('Date')
             self.ax.set_ylabel('BMI')
