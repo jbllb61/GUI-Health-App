@@ -87,7 +87,7 @@ class BMICalculator:
     def __init__(self, username, user_manager):
         self.username = username
         self.user_manager = user_manager
-        self.bmi_data = []
+        self.bmi_data = {}  # Initialize as an empty dictionary
         self.load_data()
 
     def calculate_bmi(self, weight, height):
@@ -108,6 +108,7 @@ class BMICalculator:
         interpretation = self.interpret_bmi(bmi)
         
         entry = {
+            "date": date.strftime("%Y-%m-%d"),
             "bmi": round(bmi, BMI_DECIMAL_PLACES),
             "weight": weight,
             "height": height,
@@ -117,17 +118,14 @@ class BMICalculator:
         # Store the entry using the formatted date as the key
         self.bmi_data[date.strftime("%Y-%m-%d")] = entry
 
-        # Sorted order of dates for display or graphing
-        sorted_dates = sorted(self.bmi_data.keys())
-
         self.save_data()
         self.user_manager.update_user_data(self.username, weight, height)
         
         return entry
 
-    def remove_bmi_entry(self, index):
-        if 0 <= index < len(self.bmi_data):
-            del self.bmi_data[index]
+    def remove_bmi_entry(self, date_str):
+        if date_str in self.bmi_data:
+            del self.bmi_data[date_str]
             self.save_data()
             return True
         return False
@@ -145,15 +143,23 @@ class BMICalculator:
                 with open(file_path, "r") as f:
                     file_content = f.read()
                     if not file_content.strip():  # Check if the file is empty
-                        self.bmi_data = {}  # Initialize with empty data
+                        self.bmi_data = {}  # Initialize with empty dictionary
                     else:
-                        self.bmi_data = json.loads(file_content)  # Load valid JSON
+                        loaded_data = json.loads(file_content)
+                        if isinstance(loaded_data, list):
+                            # Convert list to dictionary if old format is encountered
+                            self.bmi_data = {entry['date']: entry for entry in loaded_data}
+                        elif isinstance(loaded_data, dict):
+                            self.bmi_data = loaded_data
+                        else:
+                            print(f"Unexpected data type in file: {type(loaded_data)}")
+                            self.bmi_data = {}
             except json.JSONDecodeError:
                 print("Error decoding JSON, initializing with empty data")
-                self.bmi_data = {}  # Initialize with empty data
+                self.bmi_data = {}
         else:
-            self.save_data()  # Call save_data if the file doesn't exist
-        
+            self.bmi_data = {}
+        self.save_data()  # Save to ensure consistent format
 
     def analyze_bmi_trend(self):
         if len(self.bmi_data) < 2:
@@ -447,20 +453,20 @@ class BMICalculatorGUI:
         self.history_tree.tag_configure(color, background=color)
     
     def update_history(self):
+        # Clear existing entries in the history tree
         for i in self.history_tree.get_children():
             self.history_tree.delete(i)
-        
-        # Iterate over the sorted keys to maintain order
-        for date in sorted(self.calculator.bmi_data.keys()):
-            entry = self.calculator.bmi_data[date]  # Get the entry using the date key
+
+        # Iterate over the sorted BMI data entries
+        for date, entry in sorted(self.calculator.bmi_data.items(), key=lambda x: x[0]):
             item = self.history_tree.insert("", "end", values=(date, entry["bmi"], entry["interpretation"]))
             self.set_item_color(item, entry["interpretation"])
 
     def remove_entry(self):
         selected_item = self.history_tree.selection()
         if selected_item:
-            index = self.history_tree.index(selected_item)
-            if self.calculator.remove_bmi_entry(index):
+            date_str = self.history_tree.item(selected_item)['values'][0]
+            if self.calculator.remove_bmi_entry(date_str):
                 self.update_history()
                 self.update_chart()
                 messagebox.showinfo("Success", "Entry removed successfully.")
@@ -477,19 +483,26 @@ class BMICalculatorGUI:
         dates = []
         bmis = []
 
-        for date in sorted(self.calculator.bmi_data.keys()):  # Iterate over sorted keys
-            entry = self.calculator.bmi_data[date]  # Get the corresponding entry
+        for date, entry in sorted(self.calculator.bmi_data.items()):
             dates.append(datetime.datetime.strptime(date, "%Y-%m-%d"))
             bmis.append(entry['bmi'])
+        if isinstance(self.calculator.bmi_data, dict):
+            # Handle dictionary data structure
+            for date, entry in sorted(self.calculator.bmi_data.items()):
+                dates.append(datetime.datetime.strptime(date, "%Y-%m-%d"))
+                bmis.append(entry['bmi'])
+        else:
+            print(f"Unexpected data type for bmi_data: {type(self.calculator.bmi_data)}")
+            return
 
         # Check if there is any data to plot
-        if not bmis:  # Just check bmis since it's the main data we're plotting
+        if not bmis:
             self.ax.set_title('BMI Trend')
             self.ax.set_xlabel('Date')
             self.ax.set_ylabel('BMI')
             self.ax.grid(True)
-            self.ax.set_xticks([])  # Remove x-axis ticks if there's no data
-            self.ax.set_yticks([])  # Remove y-axis ticks if there's no data
+            self.ax.set_xticks([])
+            self.ax.set_yticks([])
             self.canvas.draw()
             return
 
