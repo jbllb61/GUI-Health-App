@@ -160,24 +160,7 @@ class BMICalculator:
         else:
             self.bmi_data = {}
         self.save_data()  # Save to ensure consistent format
-
-    def analyze_bmi_trend(self):
-        if len(self.bmi_data) < 2:
-            return "Not enough data to analyze trend."
-
-        first_bmi = self.bmi_data[0]['bmi']
-        last_bmi = self.bmi_data[-1]['bmi']
-        bmi_change = last_bmi - first_bmi
-
-        if bmi_change > 0:
-            trend = "increasing"
-        elif bmi_change < 0:
-            trend = "decreasing"
-        else:
-            trend = "stable"
-
-        return f"Your BMI has been {trend}. Total change: {bmi_change:.1f}"
-
+        
 # Class for handling the login window GUI
 class LoginWindow:
     def __init__(self, master, user_manager, on_login_success):
@@ -337,8 +320,8 @@ class BMICalculatorGUI:
 
         # Add widgets to the left frame
         self.date_entry = self.create_labeled_entry(left_frame, "Date (YYYY-MM-DD):", Entry, 0)
-        self.weight_entry = self.create_labeled_entry(left_frame, "Weight (kg):", Entry, 1)
-        self.height_entry = self.create_labeled_entry(left_frame, "Height (cm):", Entry, 2)
+        self.weight_entry = self.create_labeled_spinbox(left_frame, "Weight (kg):", from_=0, to=300, increment=0.1, row=1)
+        self.height_entry = self.create_labeled_spinbox(left_frame, "Height (cm):", from_=0, to=250, increment=1, row=2)
 
         # Set today's date as default value
         today = datetime.date.today().strftime("%Y-%m-%d")
@@ -390,6 +373,12 @@ class BMICalculatorGUI:
         selected_date = self.calendar.get_date()
         self.date_entry.delete(0, END)
         self.date_entry.insert(0, selected_date)
+        
+    def create_labeled_spinbox(self, parent, text, from_, to, increment, row):
+        Label(parent, text=text).grid(row=row, column=0, sticky=W)
+        spinbox = Spinbox(parent, from_=from_, to=to, increment=increment)
+        spinbox.grid(row=row, column=1, sticky=W)
+        return spinbox
 
     def create_history_tab(self):
         history_frame = Frame(self.notebook, padding="10")
