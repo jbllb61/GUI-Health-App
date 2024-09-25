@@ -16,8 +16,8 @@ BMI_NORMAL = 29.4
 BMI_OVERWEIGHT = 39.9
 BMI_OBESE = 40.0
 BMI_DECIMAL_PLACES = 1
-DATA_DIR = "user_data"
-USERS_FILE = "users.json"
+DATA_DIR = "user_data"  # Directory to store user data
+USERS_FILE = "users.json"  # JSON file to store user credentials
 
 # Class representing a user with username and password attributes
 class User:
@@ -35,15 +35,17 @@ class UserManager:
         
     # Load user data from JSON file if it exists, otherwise create a new one
     def load_users(self):
+        # Check if the user data file exists
         if os.path.exists(USERS_FILE):
+            # Load user data from the file
             with open(USERS_FILE, "r") as f:
                 user_data = json.load(f)
                 # Convert JSON data into User objects
                 self.users = {username: User(username, data['password']) for username, data in user_data.items()}
         # Load latest height and weight
         for username, user in self.users.items():
-                    user.latest_weight = user_data[username].get('latest_weight')
-                    user.latest_height = user_data[username].get('latest_height')
+            user.latest_weight = user_data[username].get('latest_weight')
+            user.latest_height = user_data[username].get('latest_height')
         else:
             self.save_users()
 
@@ -56,6 +58,7 @@ class UserManager:
                 'latest_height': user.latest_height
             } for username, user in self.users.items()
         }
+        # Write user data to the file
         with open(USERS_FILE, "w") as f:
             json.dump(user_data, f)
 
@@ -67,23 +70,26 @@ class UserManager:
         self.save_users()
         return True
     
+    # Update user's latest weight and height data
     def update_user_data(self, username, weight, height):
         if username in self.users:
             self.users[username].latest_weight = weight
             self.users[username].latest_height = height
             self.save_users()
             
+    # Get user's latest weight and height data
     def get_user_data(self, username):
         if username in self.users:
             return self.users[username].latest_weight, self.users[username].latest_height
         return None, None
-
+    
     # Authenticate the user by checking the username and password
     def authenticate_user(self, username, password):
         if username not in self.users:
             return False
         return self.users[username].password == password
 
+# Class for calculating BMI and managing BMI data entries
 class BMICalculator:
     def __init__(self, username, user_manager):
         self.username = username
@@ -91,9 +97,11 @@ class BMICalculator:
         self.bmi_data = {}  # Initialize as an empty dictionary
         self.load_data()
 
+    # Calculate BMI given weight and height
     def calculate_bmi(self, weight, height):
         return weight / ((height / 100) ** 2)
 
+    # Interpret BMI based on constant thresholds
     def interpret_bmi(self, bmi):
         if bmi <= BMI_UNDERWEIGHT:
             return "Underweight"
@@ -104,6 +112,7 @@ class BMICalculator:
         else:
             return "Obese"
 
+    # Add a new BMI entry with date, weight, and height
     def add_bmi_entry(self, date, weight, height):
         bmi = self.calculate_bmi(weight, height)
         interpretation = self.interpret_bmi(bmi)
@@ -124,6 +133,7 @@ class BMICalculator:
         
         return entry
 
+    # Remove a BMI entry by date string
     def remove_bmi_entry(self, date_str):
         if date_str in self.bmi_data:
             del self.bmi_data[date_str]
@@ -131,12 +141,14 @@ class BMICalculator:
             return True
         return False
 
+    # Save BMI data to a JSON file
     def save_data(self):
         if not os.path.exists(DATA_DIR):
             os.makedirs(DATA_DIR)
         with open(os.path.join(DATA_DIR, f"{self.username}_bmi_data.json"), "w") as f:
             json.dump(self.bmi_data, f)
 
+    # Load BMI data from a JSON file
     def load_data(self):
         file_path = os.path.join(DATA_DIR, f"{self.username}_bmi_data.json")
         if os.path.exists(file_path):
@@ -161,7 +173,7 @@ class BMICalculator:
         else:
             self.bmi_data = {}
         self.save_data()  # Save to ensure consistent format
-        
+
 # Class for handling the login window GUI
 class LoginWindow:
     def __init__(self, master, user_manager, on_login_success):
@@ -170,7 +182,7 @@ class LoginWindow:
         self.on_login_success = on_login_success
 
         self.master.title("Login")
-        self.master.geometry("300x220")  # Increased height for spacing
+        self.master.geometry("300x220")
 
         self.create_widgets()
         self.load_saved_details()  # Load saved login details if available
@@ -202,9 +214,11 @@ class LoginWindow:
 
     # Perform login when the user clicks the login button
     def login(self):
+        # Get the entered username and password
         username = self.username_entry.get()
         password = self.password_entry.get()
 
+        # Authenticate the user
         if self.user_manager.authenticate_user(username, password):
             # Save login details if "Remember Me" is checked
             if self.remember_var.get():
@@ -222,6 +236,7 @@ class LoginWindow:
         register_window = Toplevel(self.master)
         RegisterWindow(register_window, self.user_manager)
 
+    # Load saved login details from a JSON file, if available
     def load_saved_details(self):
         if os.path.exists("remember_details.json"):
             with open("remember_details.json", "r") as f:
@@ -230,10 +245,12 @@ class LoginWindow:
                 self.password_entry.insert(0, data.get("password", ""))
                 self.remember_var.set(True)
 
+    # Save login details to a JSON file
     def save_login_details(self, username, password):
         with open("remember_details.json", "w") as f:
             json.dump({"username": username, "password": password}, f)
 
+    # Clear saved login details
     def clear_login_details(self):
         if os.path.exists("remember_details.json"):
             os.remove("remember_details.json")
@@ -277,6 +294,7 @@ class RegisterWindow:
         else:
             messagebox.showerror("Registration Failed", "Username already exists")
 
+# Class for handling the main BMI Calculator GUI window
 class BMICalculatorGUI:
     def __init__(self, master, username, user_manager):
         self.master = master
@@ -285,11 +303,12 @@ class BMICalculatorGUI:
         self.calculator = BMICalculator(username, user_manager)
 
         self.master.minsize(600, 400)
-        self.master.geometry("600x400")
+        self.master.geometry("600x525")
 
         self.create_widgets()
         self.load_user_data()
         
+    # Create the main widgets for the GUI
     def create_widgets(self):
         self.notebook = Notebook(self.master)
         self.notebook.pack(expand=True, fill=BOTH)
@@ -297,7 +316,8 @@ class BMICalculatorGUI:
         self.create_input_tab()
         self.create_history_tab()
         self.create_chart_tab()
-        
+    
+    # Load the latest user data (weight, height) for the logged-in user
     def load_user_data(self):
         weight, height = self.user_manager.get_user_data(self.calculator.username)
         if weight:
@@ -307,6 +327,7 @@ class BMICalculatorGUI:
             self.height_entry.delete(0, END)
             self.height_entry.insert(0, str(height))
 
+    # Create the Input tab with input fields and actions
     def create_input_tab(self):
         input_frame = Frame(self.notebook, padding="10")
         self.notebook.add(input_frame, text="Input")
@@ -370,21 +391,25 @@ class BMICalculatorGUI:
         # Bind the calendar selection to update the date entry
         self.calendar.bind("<<CalendarSelected>>", self.update_date_entry)
 
+    # Update date entry when a date is selected in the calendar
     def update_date_entry(self, event):
         selected_date = self.calendar.get_date()
         self.date_entry.delete(0, END)
         self.date_entry.insert(0, selected_date)
         
+    # Create spinbox with labels for weight and height input
     def create_labeled_spinbox(self, parent, text, from_, to, increment, row):
         Label(parent, text=text).grid(row=row, column=0, sticky=W)
         spinbox = Spinbox(parent, from_=from_, to=to, increment=increment)
         spinbox.grid(row=row, column=1, sticky=W)
         return spinbox
 
+    # Create the History tab with BMI entries
     def create_history_tab(self):
         history_frame = Frame(self.notebook, padding="10")
         self.notebook.add(history_frame, text="History")
 
+        # Create a treeview to display the history
         self.history_tree = Treeview(history_frame, columns=("Date", "BMI", "Interpretation"), show="headings")
         for col in ["Date", "BMI", "Interpretation"]:
             self.history_tree.heading(col, text=col)
@@ -392,9 +417,14 @@ class BMICalculatorGUI:
 
         self.create_button(history_frame, "Remove Selected", self.remove_entry, None, expand=True)
 
+    # Create the Chart tab for visual representation of BMI data
     def create_chart_tab(self):
         chart_frame = Frame(self.notebook, padding="10")
         self.notebook.add(chart_frame, text="BMI Chart")
+
+        # Instructional label for users
+        instruction_label = Label(chart_frame, text="Click on data points to view additional information", font=('Arial', 10, 'italic'))
+        instruction_label.pack(pady=5)
 
         # Dropdown for date range selection
         self.date_range_var = StringVar()
@@ -428,14 +458,15 @@ class BMICalculatorGUI:
 
         self.update_history()
         self.update_chart()  # Initial chart update
-
-
+        
+    # Create an entry with a label
     def create_labeled_entry(self, parent, text, widget_type, row):
         Label(parent, text=text).grid(row=row, column=0, sticky=W)
         entry = widget_type(parent)
         entry.grid(row=row, column=1, sticky=W)
         return entry
 
+    # Create a button with a specific command
     def create_button(self, parent, text, command, row=None, expand=False):
         button = Button(parent, text=text, command=command)
         if row is not None:
@@ -444,6 +475,7 @@ class BMICalculatorGUI:
             button.pack(expand=expand)
         return button
 
+    # Calculate BMI and display the result
     def calculate_bmi(self):
         try:
             date = datetime.datetime.strptime(self.date_entry.get(), "%Y-%m-%d").date()
@@ -457,6 +489,7 @@ class BMICalculatorGUI:
         except ValueError:
             messagebox.showerror("Error", "Please enter valid weight and height values.")
 
+    # Set item color in history tree based on BMI interpretation
     def set_item_color(self, item, interpretation):
         color_map = {
             "Underweight": "#f95b2f",
@@ -468,6 +501,7 @@ class BMICalculatorGUI:
         self.history_tree.item(item, tags=(color,))
         self.history_tree.tag_configure(color, background=color)
     
+    # Update the history treeview with new BMI entries
     def update_history(self):
         # Clear existing entries in the history tree
         for i in self.history_tree.get_children():
@@ -478,6 +512,7 @@ class BMICalculatorGUI:
             item = self.history_tree.insert("", "end", values=(date, entry["bmi"], entry["interpretation"]))
             self.set_item_color(item, entry["interpretation"])
 
+    # Remove a BMI entry from the history
     def remove_entry(self):
         selected_item = self.history_tree.selection()
         if selected_item:
@@ -492,6 +527,7 @@ class BMICalculatorGUI:
             messagebox.showwarning("Warning", "Please select an entry to remove.")
             
     # The following section shows the visual representation of BMI over time in the form of a graph
+    # Show a visual representation of BMI over time in the form of a graph
     def update_chart(self, *args):
         self.ax.clear()  # Clear previous chart
 
@@ -501,11 +537,17 @@ class BMICalculatorGUI:
         overweight_color = "#ebcb6e"
         obese_color = "#FF6347"
 
+        # Calculate the highest BMI value if there is any data
+        if self.calculator.bmi_data:
+            highest_bmi = max(self.calculator.bmi_data.values(), key=lambda x: x["bmi"])["bmi"]
+        else:
+            highest_bmi = 50  # Default high value if there's no data
+
         # Draw color backgrounds for BMI ranges
         self.ax.axhspan(0, BMI_UNDERWEIGHT, facecolor=underweight_color, alpha=0.3, label='Underweight')
         self.ax.axhspan(BMI_UNDERWEIGHT, BMI_NORMAL, facecolor=normal_color, alpha=0.3, label='Normal weight')
         self.ax.axhspan(BMI_NORMAL, BMI_OVERWEIGHT, facecolor=overweight_color, alpha=0.3, label='Overweight')
-        self.ax.axhspan(BMI_OVERWEIGHT, max(50, max(self.calculator.bmi_data.values(), key=lambda x: x["bmi"])["bmi"] + 1), 
+        self.ax.axhspan(BMI_OVERWEIGHT, max(50, highest_bmi + 1),
                         facecolor=obese_color, alpha=0.3, label='Obese')
 
         # Convert the date strings from the BMI data entries into datetime objects for plotting
@@ -523,8 +565,8 @@ class BMICalculatorGUI:
             self.ax.set_xlabel('Date')
             self.ax.set_ylabel('BMI')
             self.ax.grid(True)
-            self.ax.set_xticks([])
-            self.ax.set_yticks([])
+            self.ax.set_xticks([])  # Remove x-axis ticks if there's no data
+            self.ax.set_yticks([])  # Remove y-axis ticks if there's no data
             self.canvas.draw()
             return
 
@@ -552,6 +594,7 @@ class BMICalculatorGUI:
         filtered_dates = [date for date in dates if start_date <= date <= end_date]
         filtered_bmis = [bmis[dates.index(date)] for date in filtered_dates]
 
+        # If no data in the filtered range, show empty chart
         if not filtered_dates:
             self.ax.set_title('BMI Trend')
             self.ax.set_xlabel('Date')
@@ -580,6 +623,7 @@ class BMICalculatorGUI:
         # Determine the range of dates to adjust tick frequency
         date_range = (max(filtered_dates) - min(filtered_dates)).days
 
+        # Adjust tick frequency based on date range
         if date_range <= 7:
             self.ax.xaxis.set_major_locator(mdates.DayLocator())
         elif date_range <= 30:
@@ -599,24 +643,43 @@ class BMICalculatorGUI:
         plt.tight_layout()
 
         self.canvas.draw()
-
+        
+    # Handle click events on the chart points
     def on_point_click(self, event):
         if event.inaxes != self.ax:
             return
 
+        # Loop through the BMI data, sorted by date
         for i, (date, entry) in enumerate(sorted(self.calculator.bmi_data.items())):
+            
+            # Check if the left mouse button was clicked
             if event.button == MouseButton.LEFT:
+                
+                # Check that both xdata (date) and ydata (BMI) are not None
                 if event.xdata is not None and event.ydata is not None:
-                    # Check for proximity to avoid outlier issues
+                    
+                    # Check if the clicked point is close to the actual data point
+                    # Convert the date from string format ("YYYY-MM-DD") to a numeric date format (E.g. 19632.0 is September 1, 2024.)
+                    # Then check if the difference between the clicked date and the actual date is less than 0.5 (half a day)
                     if abs(mdates.date2num(datetime.datetime.strptime(date, "%Y-%m-%d")) - event.xdata) < 0.5:
+                        
+                        # Retrieve the BMI data for the specific date
                         data = self.calculator.bmi_data[date]
+                        
+                        # Format the BMI information including date, BMI, weight, and height
                         bmi_info = f"Date: {date}\nBMI: {data['bmi']}\nWeight: {data['weight']} kg\nHeight: {data['height']} cm"
+                        
+                        # Display the BMI information in a popup message box
                         messagebox.showinfo("BMI Info", bmi_info)
+                        
+                        # Exit the loop after displaying the information for the clicked date
                         break
 
+    # Show exercise suggestions in a new window
     def show_exercise_suggestions(self):
         ExerciseSuggestionWindow(self.master)
 
+# Class for handling the exercise suggestion window GUI
 class ExerciseSuggestionWindow:
     def __init__(self, parent):
         self.window = Toplevel(parent)
@@ -628,6 +691,7 @@ class ExerciseSuggestionWindow:
 
         self.create_widgets()
 
+    # Create widgets for displaying exercise suggestions
     def create_widgets(self):
         self.image_label = Label(self.window)
         self.image_label.pack(pady=10)
@@ -643,10 +707,13 @@ class ExerciseSuggestionWindow:
 
         self.display_exercise()
 
+    # Create a button with a specific command
     def create_button(self, parent, text, command):
         Button(parent, text=text, command=command).pack(side=LEFT, padx=5)
 
+    # Load exercise data from a hardcoded list
     def load_exercise_data(self):
+        # List of exercise details
         return [
             {"name": "Walking", "description": "Walking is a low-impact exercise that can be done anywhere. It improves cardiovascular health, strengthens muscles, and boosts mood. Recommended: 150 minutes per week."},
             {"name": "Running", "description": "Running is an excellent cardio workout that burns a lot of calories and improves cardiovascular fitness. It can be done outdoors or on a treadmill. Recommended: 3-4 times per week, 20-30 minutes per session."},
@@ -657,22 +724,27 @@ class ExerciseSuggestionWindow:
             {"name": "High-Intensity Interval Training (HIIT)", "description": "HIIT involves short bursts of intense exercise followed by rest periods. It’s highly effective for burning calories and improving cardiovascular health. Recommended: 2-3 times per week, 20-30 minutes per session."}
         ]
 
+    # Display the current exercise suggestion
     def display_exercise(self):
         exercise = self.exercises[self.current_exercise]
         self.description_label.config(text=f"{exercise['name']}\n\n{exercise['description']}")
 
+    # Show the next exercise suggestion
     def next_exercise(self):
         self.current_exercise = (self.current_exercise + 1) % len(self.exercises)
         self.display_exercise()
 
+    # Show the previous exercise suggestion
     def previous_exercise(self):
         self.current_exercise = (self.current_exercise - 1) % len(self.exercises)
         self.display_exercise()
 
+# Main function to start the application
 def main():
     root = Tk()
     user_manager = UserManager()
 
+    # Callback function for successful login
     def on_login_success(username):
         login_window.master.destroy()
         new_root = Tk()
@@ -683,4 +755,4 @@ def main():
     root.mainloop()
 
 if __name__ == "__main__":
-    main()  
+    main()
