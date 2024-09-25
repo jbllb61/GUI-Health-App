@@ -408,6 +408,10 @@ class BMICalculatorGUI:
     def create_history_tab(self):
         history_frame = Frame(self.notebook, padding="10")
         self.notebook.add(history_frame, text="History")
+        
+        # Inform the user they can scroll if there's too much data
+        info_label = Label(history_frame, text="Scroll to see more entries if necessary.", font=('Arial', 10, 'italic'))
+        info_label.pack(side=TOP, fill=X)
 
         # Create a treeview to display the history
         self.history_tree = Treeview(history_frame, columns=("Date", "BMI", "Interpretation"), show="headings")
