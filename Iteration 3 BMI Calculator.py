@@ -343,14 +343,14 @@ class BMICalculatorGUI:
 
         Label(ranges_frame, text="BMI Ranges:", font=('Arial', 10, 'bold')).grid(row=0, column=0, columnspan=2, pady=5)
 
-        Label(ranges_frame, text="Underweight", background="white").grid(row=1, column=0, sticky=W, padx=5)
-        Label(ranges_frame, text=f"Up to {BMI_UNDERWEIGHT}", background="white").grid(row=1, column=1, sticky=W, padx=5)
+        Label(ranges_frame, text="Underweight", background="#f95b2f").grid(row=1, column=0, sticky=W, padx=5)
+        Label(ranges_frame, text=f"Up to {BMI_UNDERWEIGHT}", background="#f95b2f").grid(row=1, column=1, sticky=W, padx=5)
 
         Label(ranges_frame, text="Normal weight", background="lightgreen").grid(row=2, column=0, sticky=W, padx=5)
         Label(ranges_frame, text=f"From {BMI_UNDERWEIGHT+0.1} to {BMI_NORMAL}", background="lightgreen").grid(row=2, column=1, sticky=W, padx=5)
 
-        Label(ranges_frame, text="Overweight", background="orange").grid(row=3, column=0, sticky=W, padx=5)
-        Label(ranges_frame, text=f"From {BMI_NORMAL+0.1} to {BMI_OVERWEIGHT}", background="orange").grid(row=3, column=1, sticky=W, padx=5)
+        Label(ranges_frame, text="Overweight", background="#ebcb6e").grid(row=3, column=0, sticky=W, padx=5)
+        Label(ranges_frame, text=f"From {BMI_NORMAL+0.1} to {BMI_OVERWEIGHT}", background="#ebcb6e").grid(row=3, column=1, sticky=W, padx=5)
 
         Label(ranges_frame, text="Obese", background="brown1").grid(row=4, column=0, sticky=W, padx=5)
         Label(ranges_frame, text=f"From {BMI_OVERWEIGHT+0.1}+", background="brown1").grid(row=4, column=1, sticky=W, padx=5)
@@ -457,9 +457,9 @@ class BMICalculatorGUI:
 
     def set_item_color(self, item, interpretation):
         color_map = {
-            "Underweight": "white",
+            "Underweight": "#f95b2f",
             "Normal weight": "lightgreen",
-            "Overweight": "orange",
+            "Overweight": "#ebcb6e",
             "Obese": "brown1"
         }
         color = color_map.get(interpretation, "white")  # Default to white if interpretation is unknown
@@ -494,9 +494,9 @@ class BMICalculatorGUI:
         self.ax.clear()  # Clear previous chart
 
         # Define the colors for different BMI ranges
-        underweight_color = "white"
+        underweight_color = "#f95b2f"
         normal_color = "lightgreen"
-        overweight_color = "orange"
+        overweight_color = "#ebcb6e"
         obese_color = "#FF6347"
 
         # Draw color backgrounds for BMI ranges
