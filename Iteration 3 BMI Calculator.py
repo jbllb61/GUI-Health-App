@@ -8,6 +8,7 @@ from tkcalendar import Calendar
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backend_bases import MouseButton
 
 # Constants
 BMI_UNDERWEIGHT = 18.4
@@ -420,6 +421,7 @@ class BMICalculatorGUI:
         self.fig, self.ax = plt.subplots(figsize=(6, 4), dpi=100)
         self.canvas = FigureCanvasTkAgg(self.fig, master=chart_frame)
         self.canvas.get_tk_widget().pack(expand=True, fill=BOTH)
+        self.canvas.mpl_connect("button_press_event", self.on_point_click)  # Connect mouse click event
 
         # Bind the dropdown selection to update the chart
         self.date_range_var.trace("w", self.update_chart)
@@ -567,7 +569,7 @@ class BMICalculatorGUI:
         if plot_type == "Line":
             self.ax.plot(filtered_dates, filtered_bmis, marker='o')
         elif plot_type == "Bar":
-            self.ax.bar(filtered_dates, filtered_bmis, width=0.5, color='skyblue')
+            self.points = self.ax.bar(filtered_dates, filtered_bmis, width=0.5, color='skyblue', picker=True)
 
         # Set labels and title
         self.ax.set_xlabel('Date')
@@ -597,6 +599,20 @@ class BMICalculatorGUI:
         plt.tight_layout()
 
         self.canvas.draw()
+
+    def on_point_click(self, event):
+        if event.inaxes != self.ax:
+            return
+
+        for i, (date, entry) in enumerate(sorted(self.calculator.bmi_data.items())):
+            if event.button == MouseButton.LEFT:
+                if event.xdata is not None and event.ydata is not None:
+                    # Check for proximity to avoid outlier issues
+                    if abs(mdates.date2num(datetime.datetime.strptime(date, "%Y-%m-%d")) - event.xdata) < 0.5:
+                        data = self.calculator.bmi_data[date]
+                        bmi_info = f"Date: {date}\nBMI: {data['bmi']}\nWeight: {data['weight']} kg\nHeight: {data['height']} cm"
+                        messagebox.showinfo("BMI Info", bmi_info)
+                        break
 
     def show_exercise_suggestions(self):
         ExerciseSuggestionWindow(self.master)
