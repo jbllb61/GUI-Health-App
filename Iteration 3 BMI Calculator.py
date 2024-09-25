@@ -20,9 +20,10 @@ USERS_FILE = "users.json"
 
 # Class representing a user with username and password attributes
 class User:
-    def __init__(self, username, password):
+    def __init__(self, username, password, stay_logged_in=False):
         self.username = username
         self.password = password
+        self.stay_logged_in = stay_logged_in
         self.latest_weight = None
         self.latest_height = None
 
@@ -38,9 +39,9 @@ class UserManager:
             with open(USERS_FILE, "r") as f:
                 user_data = json.load(f)
                 # Convert JSON data into User objects
-                self.users = {username: User(username, data['password']) for username, data in user_data.items()}
-        # Load latest height and weight
-        for username, user in self.users.items():
+                self.users = {username: User(username, data['password'], data.get('stay_logged_in', False)) for username, data in user_data.items()}
+                # Load latest height and weight
+                for username, user in self.users.items():
                     user.latest_weight = user_data[username].get('latest_weight')
                     user.latest_height = user_data[username].get('latest_height')
         else:
@@ -51,6 +52,7 @@ class UserManager:
         user_data = {
             username: {
                 'password': user.password,
+                'stay_logged_in': user.stay_logged_in,  # Save stay_logged_in flag
                 'latest_weight': user.latest_weight,
                 'latest_height': user.latest_height
             } for username, user in self.users.items()
@@ -66,12 +68,14 @@ class UserManager:
         self.save_users()
         return True
     
+    # Update user's latest height and weight
     def update_user_data(self, username, weight, height):
         if username in self.users:
             self.users[username].latest_weight = weight
             self.users[username].latest_height = height
             self.save_users()
             
+    # Get latest weight and height data for autofill
     def get_user_data(self, username):
         if username in self.users:
             return self.users[username].latest_weight, self.users[username].latest_height
@@ -81,7 +85,15 @@ class UserManager:
     def authenticate_user(self, username, password):
         if username not in self.users:
             return False
-        return self.users[username].password == password
+        user = self.users[username]
+        if user.password == password:
+            user.stay_logged_in = True
+            self.save_users()
+            return True
+        return False
+
+    def is_user_logged_in(self, username):
+        return username in self.users and self.users[username].stay_logged_in
 
 class BMICalculator:
     def __init__(self, username, user_manager):
@@ -186,7 +198,7 @@ class LoginWindow:
         self.on_login_success = on_login_success
 
         self.master.title("Login")
-        self.master.geometry("300x200")  # Increased height for spacing
+        self.master.geometry("300x250")  # Increased height for spacing
 
         self.create_widgets()
 
@@ -211,14 +223,22 @@ class LoginWindow:
         # Button to open the registration window
         self.register_button = Button(self.master, text="Register New Account", command=self.open_register_window)
         self.register_button.pack(pady=15)
+        
+        # "Stay Logged In" checkbox
+        self.stay_logged_in_var = BooleanVar()
+        self.stay_logged_in_checkbutton = Checkbutton(self.master, text="Stay Logged In", variable=self.stay_logged_in_var)
+        self.stay_logged_in_checkbutton.pack()
 
     # Perform login when the user clicks the login button
     def login(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
+        stay_logged_in = self.stay_logged_in_var.get()
 
         # Call UserManager to authenticate the username and password
         if self.user_manager.authenticate_user(username, password):
+            self.user_manager.users[username].stay_logged_in = stay_logged_in
+            self.user_manager.save_users()
             self.master.withdraw()  # Hide the login window after successful login
             self.on_login_success(username) # Call the callback to move forward in the app
         else:
@@ -278,16 +298,38 @@ class BMICalculatorGUI:
         self.master.minsize(600, 400)
         self.master.geometry("600x400")
 
+        self.username = username  # Store the username for logout functionality (to update the `stay_logged_in` status for the current user.)
+
         self.create_widgets()
         self.load_user_data()
         
     def create_widgets(self):
+        # **Add Logout Button to the Menu Bar**
+        menu_bar = Menu(self.master)
+        self.master.config(menu=menu_bar)
+
+        # Create an "Account" menu
+        file_menu = Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label="Account", menu=file_menu)
+        file_menu.add_command(label="Logout", command=self.logout)
+        
         self.notebook = Notebook(self.master)
         self.notebook.pack(expand=True, fill=BOTH)
 
         self.create_input_tab()
         self.create_history_tab()
         self.create_chart_tab()
+        
+    def logout(self):
+        """Handle the logout process."""
+        # Set stay_logged_in to False for the current user
+        self.user_manager.users[self.username].stay_logged_in = False
+        self.user_manager.save_users()
+
+        messagebox.showinfo("Logout", "You have been logged out.")
+
+        # Close the BMI Calculator window
+        self.master.destroy()
         
     def load_user_data(self):
         weight, height = self.user_manager.get_user_data(self.calculator.username)
@@ -385,20 +427,20 @@ class BMICalculatorGUI:
         self.date_range_var = StringVar()
         self.date_range_var.set("Last 7 Days")  # Set the default value
 
-        # Options list
-        options = ["Last 7 Days", "Last 7 Days", "Last 2 Weeks", "Last 3 Weeks", "Last Month", "Last 3 Months", "Last 6 Months", "Last Year"]
-
-        # Create OptionMenu
+        options = ["Last 7 Days", "Last 2 Weeks", "Last 3 Weeks", "Last Month", "Last 3 Months", "Last 6 Months", "Last Year"]
+        
+        # Create OptionMenu for date range
         self.date_range_menu = OptionMenu(chart_frame, self.date_range_var, *options)
         self.date_range_menu.pack(pady=10)
 
-        # Radio buttons for graph type
-        self.graph_type_var = StringVar()
-        self.graph_type_var.set("Line")  # Default graph type
+        # Set the default graph type variable
+        self.graph_type_var = StringVar(value="Line")  # Default graph type set to "Line"
 
+        # Line graph option with direct update of the graph type
         line_radio = Radiobutton(chart_frame, text="Line Graph", variable=self.graph_type_var, value="Line", command=self.update_chart)
         line_radio.pack(anchor=W)
 
+        # Bar graph option with direct update of the graph type
         bar_radio = Radiobutton(chart_frame, text="Bar Graph", variable=self.graph_type_var, value="Bar", command=self.update_chart)
         bar_radio.pack(anchor=W)
 
@@ -407,8 +449,8 @@ class BMICalculatorGUI:
         self.canvas = FigureCanvasTkAgg(self.fig, master=chart_frame)
         self.canvas.get_tk_widget().pack(expand=True, fill=BOTH)
 
-        # Bind the dropdown selection to update the chart
-        self.date_range_var.trace("w", self.update_chart)
+        # Bind the dropdown selection to update the chart with 'trace'
+        self.date_range_var.trace_add("write", self.update_chart)
 
         self.update_history()
         self.update_chart()  # Initial chart update
@@ -533,10 +575,9 @@ class BMICalculatorGUI:
             self.canvas.draw()
             return
 
-        # Determine the type of graph to plot
-        plot_type = self.graph_type_var.get()  # Assume plot_type_var is a StringVar holding the plot type
+        # Plotting based on the selected graph type directly from the radio buttons
+        plot_type = self.graph_type_var.get()  # Retrieve the graph type directly from the radio button
 
-        # Plotting
         if plot_type == "Line":
             self.ax.plot(filtered_dates, filtered_bmis, marker='o')
         elif plot_type == "Bar":
@@ -570,7 +611,7 @@ class BMICalculatorGUI:
         plt.tight_layout()
 
         self.canvas.draw()
-
+        
     def show_exercise_suggestions(self):
         ExerciseSuggestionWindow(self.master)
 
@@ -637,7 +678,17 @@ def main():
         new_root.mainloop()
 
     login_window = LoginWindow(root, user_manager, on_login_success)
+
+    # Check if the user is already logged in
+    for username, user in user_manager.users.items():
+        if user.stay_logged_in:
+            login_window.master.withdraw()
+            new_root = Tk()
+            app = BMICalculatorGUI(new_root, username, user_manager)
+            new_root.mainloop()
+            return
+
     root.mainloop()
 
 if __name__ == "__main__":
-    main()  
+    main()
