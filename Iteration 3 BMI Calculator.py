@@ -341,9 +341,9 @@ class BMICalculatorGUI:
         left_frame.pack(side=LEFT, padx=(0, 10), expand=True, fill=BOTH)
 
         # Add widgets to the left frame
-        self.date_entry = self.create_labeled_entry(left_frame, "Date (YYYY-MM-DD):", Entry, 0)
-        self.weight_entry = self.create_labeled_spinbox(left_frame, "Weight (kg):", from_=0, to=300, increment=0.1, row=1)
-        self.height_entry = self.create_labeled_spinbox(left_frame, "Height (cm):", from_=0, to=250, increment=1, row=2)
+        self.date_entry = self.create_labelled_entry(left_frame, "Date (YYYY-MM-DD):", Entry, 0)
+        self.weight_entry = self.create_labelled_spinbox(left_frame, "Weight (kg):", from_=0, to=300, increment=0.1, row=1)
+        self.height_entry = self.create_labelled_spinbox(left_frame, "Height (cm):", from_=0, to=250, increment=1, row=2)
 
         # Set today's date as default value
         today = datetime.date.today().strftime("%Y-%m-%d")
@@ -398,7 +398,7 @@ class BMICalculatorGUI:
         self.date_entry.insert(0, selected_date)
         
     # Create spinbox with labels for weight and height input
-    def create_labeled_spinbox(self, parent, text, from_, to, increment, row):
+    def create_labelled_spinbox(self, parent, text, from_, to, increment, row):
         Label(parent, text=text).grid(row=row, column=0, sticky=W)
         spinbox = Spinbox(parent, from_=from_, to=to, increment=increment)
         spinbox.grid(row=row, column=1, sticky=W)
@@ -464,7 +464,7 @@ class BMICalculatorGUI:
         self.update_chart()  # Initial chart update
         
     # Create an entry with a label
-    def create_labeled_entry(self, parent, text, widget_type, row):
+    def create_labelled_entry(self, parent, text, widget_type, row):
         Label(parent, text=text).grid(row=row, column=0, sticky=W)
         entry = widget_type(parent)
         entry.grid(row=row, column=1, sticky=W)
@@ -485,6 +485,11 @@ class BMICalculatorGUI:
             date = datetime.datetime.strptime(self.date_entry.get(), "%Y-%m-%d").date()
             weight = float(self.weight_entry.get())
             height = float(self.height_entry.get())
+
+            # Check for non-positive values
+            if weight <= 0 or height <= 0:
+                messagebox.showerror("Error", "Weight and height must be positive numbers.")
+                return
 
             entry = self.calculator.add_bmi_entry(date, weight, height)
             self.result_label.config(text=f"BMI: {entry['bmi']} - {entry['interpretation']}")
