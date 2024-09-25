@@ -303,7 +303,7 @@ class BMICalculatorGUI:
         self.calculator = BMICalculator(username, user_manager)
 
         self.master.minsize(600, 400)
-        self.master.geometry("600x400")
+        self.master.geometry("600x525")
 
         self.create_widgets()
         self.load_user_data()
@@ -659,7 +659,7 @@ class BMICalculatorGUI:
                 if event.xdata is not None and event.ydata is not None:
                     
                     # Check if the clicked point is close to the actual data point
-                    # Convert the date from string format ("YYYY-MM-DD") to a numeric date format
+                    # Convert the date from string format ("YYYY-MM-DD") to a numeric date format (E.g. 19632.0 is September 1, 2024.)
                     # Then check if the difference between the clicked date and the actual date is less than 0.5 (half a day)
                     if abs(mdates.date2num(datetime.datetime.strptime(date, "%Y-%m-%d")) - event.xdata) < 0.5:
                         
@@ -669,7 +669,7 @@ class BMICalculatorGUI:
                         # Format the BMI information including date, BMI, weight, and height
                         bmi_info = f"Date: {date}\nBMI: {data['bmi']}\nWeight: {data['weight']} kg\nHeight: {data['height']} cm"
                         
-                        # Display the BMI information in a popup message box (likely from Tkinter)
+                        # Display the BMI information in a popup message box
                         messagebox.showinfo("BMI Info", bmi_info)
                         
                         # Exit the loop after displaying the information for the clicked date
