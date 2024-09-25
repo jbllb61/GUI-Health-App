@@ -604,15 +604,32 @@ class BMICalculatorGUI:
         if event.inaxes != self.ax:
             return
 
+        # Loop through the BMI data, sorted by date
         for i, (date, entry) in enumerate(sorted(self.calculator.bmi_data.items())):
+            
+            # Check if the left mouse button was clicked
             if event.button == MouseButton.LEFT:
+                
+                # Ensure that both xdata (date) and ydata (BMI) are not None
                 if event.xdata is not None and event.ydata is not None:
-                    # Check for proximity to avoid outlier issues
+                    
+                    # Check if the clicked point is close to the actual data point
+                    # Convert the date from string format ("YYYY-MM-DD") to a numeric date format
+                    # Then check if the difference between the clicked date and the actual date is less than 0.5 (half a day)
                     if abs(mdates.date2num(datetime.datetime.strptime(date, "%Y-%m-%d")) - event.xdata) < 0.5:
+                        
+                        # Retrieve the BMI data for the specific date
                         data = self.calculator.bmi_data[date]
+                        
+                        # Format the BMI information including date, BMI, weight, and height
                         bmi_info = f"Date: {date}\nBMI: {data['bmi']}\nWeight: {data['weight']} kg\nHeight: {data['height']} cm"
+                        
+                        # Display the BMI information in a popup message box (likely from Tkinter)
                         messagebox.showinfo("BMI Info", bmi_info)
+                        
+                        # Exit the loop after displaying the information for the clicked date
                         break
+
 
     def show_exercise_suggestions(self):
         ExerciseSuggestionWindow(self.master)
