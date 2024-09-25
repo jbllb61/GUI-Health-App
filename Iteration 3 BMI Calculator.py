@@ -431,7 +431,7 @@ class BMICalculatorGUI:
         self.date_range_var.set("Last 7 Days")  # Set the default value
 
         # Options list
-        options = ["Last 7 Days", "Last 2 Weeks", "Last 3 Weeks", "Last Month", "Last 3 Months", "Last 6 Months", "Last Year"]
+        options = ["Last 7 Days", "Last 7 Days", "Last 2 Weeks", "Last 3 Weeks", "Last Month", "Last 3 Months", "Last 6 Months", "Last Year"]
 
         # Create OptionMenu
         self.date_range_menu = OptionMenu(chart_frame, self.date_range_var, *options)
@@ -537,13 +537,20 @@ class BMICalculatorGUI:
         overweight_color = "#ebcb6e"
         obese_color = "#FF6347"
 
+        # Calculate the highest BMI value if there is any data
+        if self.calculator.bmi_data:
+            highest_bmi = max(self.calculator.bmi_data.values(), key=lambda x: x["bmi"])["bmi"]
+        else:
+            highest_bmi = 50  # Default high value if there's no data
+
         # Draw color backgrounds for BMI ranges
         self.ax.axhspan(0, BMI_UNDERWEIGHT, facecolor=underweight_color, alpha=0.3, label='Underweight')
         self.ax.axhspan(BMI_UNDERWEIGHT, BMI_NORMAL, facecolor=normal_color, alpha=0.3, label='Normal weight')
         self.ax.axhspan(BMI_NORMAL, BMI_OVERWEIGHT, facecolor=overweight_color, alpha=0.3, label='Overweight')
-        self.ax.axhspan(BMI_OVERWEIGHT, 50, facecolor=obese_color, alpha=0.3, label='Obese')
+        self.ax.axhspan(BMI_OVERWEIGHT, max(50, highest_bmi + 1),
+                        facecolor=obese_color, alpha=0.3, label='Obese')
 
-        # Convert the date strings from the BMI data entries into datetime objects for
+        # Convert the date strings from the BMI data entries into datetime objects for plotting
         dates = []
         bmis = []
 
@@ -636,6 +643,7 @@ class BMICalculatorGUI:
         plt.tight_layout()
 
         self.canvas.draw()
+        
     # Handle click events on the chart points
     def on_point_click(self, event):
         if event.inaxes != self.ax:
