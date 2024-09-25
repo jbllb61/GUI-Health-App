@@ -298,7 +298,7 @@ class BMICalculatorGUI:
         self.master.minsize(600, 400)
         self.master.geometry("600x400")
 
-        self.username = username  # Store the username for logout functionality (to update the `stay_logged_in` status for the current user.)
+        self.username = username  # Store the username for logout functionality
 
         self.create_widgets()
         self.load_user_data()
@@ -427,20 +427,20 @@ class BMICalculatorGUI:
         self.date_range_var = StringVar()
         self.date_range_var.set("Last 7 Days")  # Set the default value
 
-        options = ["Last 7 Days", "Last 2 Weeks", "Last 3 Weeks", "Last Month", "Last 3 Months", "Last 6 Months", "Last Year"]
-        
-        # Create OptionMenu for date range
+        # Options list
+        options = ["Last 7 Days", "Last 7 Days", "Last 2 Weeks", "Last 3 Weeks", "Last Month", "Last 3 Months", "Last 6 Months", "Last Year"]
+
+        # Create OptionMenu
         self.date_range_menu = OptionMenu(chart_frame, self.date_range_var, *options)
         self.date_range_menu.pack(pady=10)
 
-        # Set the default graph type variable
-        self.graph_type_var = StringVar(value="Line")  # Default graph type set to "Line"
+        # Radio buttons for graph type
+        self.graph_type_var = StringVar()
+        self.graph_type_var.set("Line")  # Default graph type
 
-        # Line graph option with direct update of the graph type
         line_radio = Radiobutton(chart_frame, text="Line Graph", variable=self.graph_type_var, value="Line", command=self.update_chart)
         line_radio.pack(anchor=W)
 
-        # Bar graph option with direct update of the graph type
         bar_radio = Radiobutton(chart_frame, text="Bar Graph", variable=self.graph_type_var, value="Bar", command=self.update_chart)
         bar_radio.pack(anchor=W)
 
@@ -449,8 +449,8 @@ class BMICalculatorGUI:
         self.canvas = FigureCanvasTkAgg(self.fig, master=chart_frame)
         self.canvas.get_tk_widget().pack(expand=True, fill=BOTH)
 
-        # Bind the dropdown selection to update the chart with 'trace'
-        self.date_range_var.trace_add("write", self.update_chart)
+        # Bind the dropdown selection to update the chart
+        self.date_range_var.trace("w", self.update_chart)
 
         self.update_history()
         self.update_chart()  # Initial chart update
@@ -565,23 +565,32 @@ class BMICalculatorGUI:
         filtered_dates = [date for date in dates if start_date <= date <= end_date]
         filtered_bmis = [bmis[dates.index(date)] for date in filtered_dates]
 
+        # Debugging output
+        print(f"Filtered Dates: {filtered_dates}")
+        print(f"Filtered BMIs: {filtered_bmis}")
+
         if not filtered_dates:
             self.ax.set_title('BMI Trend')
             self.ax.set_xlabel('Date')
             self.ax.set_ylabel('BMI')
             self.ax.grid(True)
-            self.ax.set_xticks([])  # Remove x-axis ticks if there's no filtered data
-            self.ax.set_yticks([])  # Remove y-axis ticks if there's no filtered data
+            self.ax.set_xticks([])
+            self.ax.set_yticks([])
             self.canvas.draw()
             return
 
-        # Plotting based on the selected graph type directly from the radio buttons
-        plot_type = self.graph_type_var.get()  # Retrieve the graph type directly from the radio button
+        # Determine the type of graph to plot
+        plot_type = self.graph_type_var.get()
 
+        # Plotting
         if plot_type == "Line":
-            self.ax.plot(filtered_dates, filtered_bmis, marker='o')
+            self.ax.plot(filtered_dates, filtered_bmis, marker='o', linestyle='-')
         elif plot_type == "Bar":
             self.ax.bar(filtered_dates, filtered_bmis, width=0.5, color='skyblue')
+
+        # Ensure the x-ticks are set to the filtered dates
+        self.ax.set_xticks(filtered_dates)
+        self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%m-%Y'))
 
         # Set labels and title
         self.ax.set_xlabel('Date')
@@ -589,29 +598,13 @@ class BMICalculatorGUI:
         self.ax.set_title('BMI Trend')
         self.ax.grid(True)
 
-        # Determine the range of dates to adjust tick frequency
-        date_range = (max(filtered_dates) - min(filtered_dates)).days
-
-        if date_range <= 7:
-            self.ax.xaxis.set_major_locator(mdates.DayLocator())
-        elif date_range <= 30:
-            self.ax.xaxis.set_major_locator(mdates.WeekdayLocator())
-        elif date_range <= 90:
-            self.ax.xaxis.set_major_locator(mdates.MonthLocator())
-        else:
-            self.ax.xaxis.set_major_locator(mdates.YearLocator())
-
-        # Format dates to "day-month-year"
-        self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%m-%Y'))
-
-        # Rotate date labels to prevent overlap
-        plt.setp(self.ax.get_xticklabels(), rotation=45, ha="right")
-
         # Adjust layout to accommodate rotated labels
+        plt.setp(self.ax.get_xticklabels(), rotation=45, ha="right")
         plt.tight_layout()
 
         self.canvas.draw()
-        
+
+
     def show_exercise_suggestions(self):
         ExerciseSuggestionWindow(self.master)
 
