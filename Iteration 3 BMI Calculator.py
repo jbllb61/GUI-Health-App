@@ -20,10 +20,9 @@ USERS_FILE = "users.json"
 
 # Class representing a user with username and password attributes
 class User:
-    def __init__(self, username, password, stay_logged_in=False):
+    def __init__(self, username, password):
         self.username = username
         self.password = password
-        self.stay_logged_in = stay_logged_in
         self.latest_weight = None
         self.latest_height = None
 
@@ -39,9 +38,9 @@ class UserManager:
             with open(USERS_FILE, "r") as f:
                 user_data = json.load(f)
                 # Convert JSON data into User objects
-                self.users = {username: User(username, data['password'], data.get('stay_logged_in', False)) for username, data in user_data.items()}
-                # Load latest height and weight
-                for username, user in self.users.items():
+                self.users = {username: User(username, data['password']) for username, data in user_data.items()}
+        # Load latest height and weight
+        for username, user in self.users.items():
                     user.latest_weight = user_data[username].get('latest_weight')
                     user.latest_height = user_data[username].get('latest_height')
         else:
@@ -52,7 +51,6 @@ class UserManager:
         user_data = {
             username: {
                 'password': user.password,
-                'stay_logged_in': user.stay_logged_in,  # Save stay_logged_in flag
                 'latest_weight': user.latest_weight,
                 'latest_height': user.latest_height
             } for username, user in self.users.items()
@@ -68,14 +66,12 @@ class UserManager:
         self.save_users()
         return True
     
-    # Update user's latest height and weight
     def update_user_data(self, username, weight, height):
         if username in self.users:
             self.users[username].latest_weight = weight
             self.users[username].latest_height = height
             self.save_users()
             
-    # Get latest weight and height data for autofill
     def get_user_data(self, username):
         if username in self.users:
             return self.users[username].latest_weight, self.users[username].latest_height
@@ -85,15 +81,7 @@ class UserManager:
     def authenticate_user(self, username, password):
         if username not in self.users:
             return False
-        user = self.users[username]
-        if user.password == password:
-            user.stay_logged_in = True
-            self.save_users()
-            return True
-        return False
-
-    def is_user_logged_in(self, username):
-        return username in self.users and self.users[username].stay_logged_in
+        return self.users[username].password == password
 
 class BMICalculator:
     def __init__(self, username, user_manager):
@@ -198,9 +186,10 @@ class LoginWindow:
         self.on_login_success = on_login_success
 
         self.master.title("Login")
-        self.master.geometry("300x250")  # Increased height for spacing
+        self.master.geometry("300x220")  # Increased height for spacing
 
         self.create_widgets()
+        self.load_saved_details()  # Load saved login details if available
 
     # Create login form fields for username, password, and buttons
     def create_widgets(self):
@@ -216,31 +205,31 @@ class LoginWindow:
         self.password_entry = Entry(self.master, show="*")
         self.password_entry.pack()
 
-        # Button to login
+        # Remember Me checkbox
+        self.remember_var = BooleanVar()
+        self.remember_check = Checkbutton(self.master, text="Remember My Details", variable=self.remember_var)
+        self.remember_check.pack(pady=5)
+
         self.login_button = Button(self.master, text="Login", command=self.login)
         self.login_button.pack(pady=3)
 
-        # Button to open the registration window
         self.register_button = Button(self.master, text="Register New Account", command=self.open_register_window)
         self.register_button.pack(pady=15)
-        
-        # "Stay Logged In" checkbox
-        self.stay_logged_in_var = BooleanVar()
-        self.stay_logged_in_checkbutton = Checkbutton(self.master, text="Stay Logged In", variable=self.stay_logged_in_var)
-        self.stay_logged_in_checkbutton.pack()
 
     # Perform login when the user clicks the login button
     def login(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
-        stay_logged_in = self.stay_logged_in_var.get()
 
-        # Call UserManager to authenticate the username and password
         if self.user_manager.authenticate_user(username, password):
-            self.user_manager.users[username].stay_logged_in = stay_logged_in
-            self.user_manager.save_users()
-            self.master.withdraw()  # Hide the login window after successful login
-            self.on_login_success(username) # Call the callback to move forward in the app
+            # Save login details if "Remember Me" is checked
+            if self.remember_var.get():
+                self.save_login_details(username, password)
+            else:
+                self.clear_login_details()
+                
+            self.master.withdraw()
+            self.on_login_success(username)
         else:
             messagebox.showerror("Login Failed", "Invalid username or password")
 
@@ -249,6 +238,22 @@ class LoginWindow:
         register_window = Toplevel(self.master)
         RegisterWindow(register_window, self.user_manager)
 
+    def load_saved_details(self):
+        if os.path.exists("remember_details.json"):
+            with open("remember_details.json", "r") as f:
+                data = json.load(f)
+                self.username_entry.insert(0, data.get("username", ""))
+                self.password_entry.insert(0, data.get("password", ""))
+                self.remember_var.set(True)
+
+    def save_login_details(self, username, password):
+        with open("remember_details.json", "w") as f:
+            json.dump({"username": username, "password": password}, f)
+
+    def clear_login_details(self):
+        if os.path.exists("remember_details.json"):
+            os.remove("remember_details.json")
+            
 # Class for handling the user registration window GUI
 class RegisterWindow:
     def __init__(self, master, user_manager):
@@ -298,38 +303,16 @@ class BMICalculatorGUI:
         self.master.minsize(600, 400)
         self.master.geometry("600x400")
 
-        self.username = username  # Store the username for logout functionality
-
         self.create_widgets()
         self.load_user_data()
         
     def create_widgets(self):
-        # **Add Logout Button to the Menu Bar**
-        menu_bar = Menu(self.master)
-        self.master.config(menu=menu_bar)
-
-        # Create an "Account" menu
-        file_menu = Menu(menu_bar, tearoff=0)
-        menu_bar.add_cascade(label="Account", menu=file_menu)
-        file_menu.add_command(label="Logout", command=self.logout)
-        
         self.notebook = Notebook(self.master)
         self.notebook.pack(expand=True, fill=BOTH)
 
         self.create_input_tab()
         self.create_history_tab()
         self.create_chart_tab()
-        
-    def logout(self):
-        """Handle the logout process."""
-        # Set stay_logged_in to False for the current user
-        self.user_manager.users[self.username].stay_logged_in = False
-        self.user_manager.save_users()
-
-        messagebox.showinfo("Logout", "You have been logged out.")
-
-        # Close the BMI Calculator window
-        self.master.destroy()
         
     def load_user_data(self):
         weight, height = self.user_manager.get_user_data(self.calculator.username)
@@ -565,32 +548,24 @@ class BMICalculatorGUI:
         filtered_dates = [date for date in dates if start_date <= date <= end_date]
         filtered_bmis = [bmis[dates.index(date)] for date in filtered_dates]
 
-        # Debugging output
-        print(f"Filtered Dates: {filtered_dates}")
-        print(f"Filtered BMIs: {filtered_bmis}")
-
         if not filtered_dates:
             self.ax.set_title('BMI Trend')
             self.ax.set_xlabel('Date')
             self.ax.set_ylabel('BMI')
             self.ax.grid(True)
-            self.ax.set_xticks([])
-            self.ax.set_yticks([])
+            self.ax.set_xticks([])  # Remove x-axis ticks if there's no filtered data
+            self.ax.set_yticks([])  # Remove y-axis ticks if there's no filtered data
             self.canvas.draw()
             return
 
         # Determine the type of graph to plot
-        plot_type = self.graph_type_var.get()
+        plot_type = self.graph_type_var.get()  # Assume plot_type_var is a StringVar holding the plot type
 
         # Plotting
         if plot_type == "Line":
-            self.ax.plot(filtered_dates, filtered_bmis, marker='o', linestyle='-')
+            self.ax.plot(filtered_dates, filtered_bmis, marker='o')
         elif plot_type == "Bar":
             self.ax.bar(filtered_dates, filtered_bmis, width=0.5, color='skyblue')
-
-        # Ensure the x-ticks are set to the filtered dates
-        self.ax.set_xticks(filtered_dates)
-        self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%m-%Y'))
 
         # Set labels and title
         self.ax.set_xlabel('Date')
@@ -598,12 +573,28 @@ class BMICalculatorGUI:
         self.ax.set_title('BMI Trend')
         self.ax.grid(True)
 
-        # Adjust layout to accommodate rotated labels
+        # Determine the range of dates to adjust tick frequency
+        date_range = (max(filtered_dates) - min(filtered_dates)).days
+
+        if date_range <= 7:
+            self.ax.xaxis.set_major_locator(mdates.DayLocator())
+        elif date_range <= 30:
+            self.ax.xaxis.set_major_locator(mdates.WeekdayLocator())
+        elif date_range <= 90:
+            self.ax.xaxis.set_major_locator(mdates.MonthLocator())
+        else:
+            self.ax.xaxis.set_major_locator(mdates.YearLocator())
+
+        # Format dates to "day-month-year"
+        self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%m-%Y'))
+
+        # Rotate date labels to prevent overlap
         plt.setp(self.ax.get_xticklabels(), rotation=45, ha="right")
+
+        # Adjust layout to accommodate rotated labels
         plt.tight_layout()
 
         self.canvas.draw()
-
 
     def show_exercise_suggestions(self):
         ExerciseSuggestionWindow(self.master)
@@ -671,17 +662,7 @@ def main():
         new_root.mainloop()
 
     login_window = LoginWindow(root, user_manager, on_login_success)
-
-    # Check if the user is already logged in
-    for username, user in user_manager.users.items():
-        if user.stay_logged_in:
-            login_window.master.withdraw()
-            new_root = Tk()
-            app = BMICalculatorGUI(new_root, username, user_manager)
-            new_root.mainloop()
-            return
-
     root.mainloop()
 
 if __name__ == "__main__":
-    main()
+    main()  
