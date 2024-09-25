@@ -504,6 +504,19 @@ class BMICalculatorGUI:
     def update_chart(self, *args):
         self.ax.clear()  # Clear previous chart
 
+        # Define the colors for different BMI ranges
+        underweight_color = "white"
+        normal_color = "lightgreen"
+        overweight_color = "orange"
+        obese_color = "#FF6347"
+
+        # Draw color backgrounds for BMI ranges
+        self.ax.axhspan(0, BMI_UNDERWEIGHT, facecolor=underweight_color, alpha=0.3, label='Underweight')
+        self.ax.axhspan(BMI_UNDERWEIGHT, BMI_NORMAL, facecolor=normal_color, alpha=0.3, label='Normal weight')
+        self.ax.axhspan(BMI_NORMAL, BMI_OVERWEIGHT, facecolor=overweight_color, alpha=0.3, label='Overweight')
+        self.ax.axhspan(BMI_OVERWEIGHT, max(50, max(self.calculator.bmi_data.values(), key=lambda x: x["bmi"])["bmi"] + 1), 
+                        facecolor=obese_color, alpha=0.3, label='Obese')
+
         # Convert the date strings from the BMI data entries into datetime objects for plotting
         dates = []
         bmis = []
