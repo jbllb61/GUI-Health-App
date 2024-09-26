@@ -435,7 +435,7 @@ class BMICalculatorGUI:
         self.date_range_var.set("Last 7 Days")  # Set the default value
 
         # Options list
-        options = ["Last 7 Days", "Last 7 Days", "Last 2 Weeks", "Last 3 Weeks", "Last Month", "Last 3 Months", "Last 6 Months", "Last Year"]
+        options = ["Last 7 Days", "Last 7 Days", "Last 2 Weeks", "Last 3 Weeks", "Last Month", "Last 3 Months", "Last 6 Months", "Last Year", "Last 2 Years"]
 
         # Create OptionMenu
         self.date_range_menu = OptionMenu(chart_frame, self.date_range_var, *options)
@@ -536,7 +536,6 @@ class BMICalculatorGUI:
             messagebox.showwarning("Warning", "Please select an entry to remove.")
             
     # The following section shows the visual representation of BMI over time in the form of a graph
-    # Show a visual representation of BMI over time in the form of a graph
     def update_chart(self, *args):
         self.ax.clear()  # Clear previous chart
 
@@ -598,6 +597,8 @@ class BMICalculatorGUI:
             start_date = end_date - datetime.timedelta(days=180)
         elif selected_range == "Last Year":
             start_date = end_date - datetime.timedelta(days=365)
+        elif selected_range == "Last 2 Years":
+            start_date = end_date - datetime.timedelta(days=730)
 
         # Filter data to include only entries within the selected range
         filtered_dates = [date for date in dates if start_date <= date <= end_date]
@@ -628,6 +629,14 @@ class BMICalculatorGUI:
         self.ax.set_ylabel('BMI')
         self.ax.set_title('BMI Trend')
         self.ax.grid(True)
+        
+        # Set x-axis limits
+        if min(filtered_dates) != max(filtered_dates):
+            self.ax.set_xlim([min(filtered_dates), max(filtered_dates)])
+        else:
+            # If only one date, extend the range by a day on either side
+            self.ax.set_xlim([min(filtered_dates) - datetime.timedelta(days=1),
+                            max(filtered_dates) + datetime.timedelta(days=1)])
 
         # Determine the range of dates to adjust tick frequency
         date_range = (max(filtered_dates) - min(filtered_dates)).days
