@@ -208,7 +208,7 @@ class LoginWindow:
 
     # Create login form fields for username, password, and buttons
     def create_widgets(self):
-        self.username_label = Label(self.master, text="Username:")
+        self.username_label = Label(self.master, text="Username (Case Sensitive):")
         self.username_label.pack(pady=5)
         self.username_entry = Entry(self.master)
         self.username_entry.pack()
