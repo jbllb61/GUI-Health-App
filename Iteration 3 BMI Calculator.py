@@ -764,7 +764,7 @@ class ExerciseSuggestionWindow:
         self.window = Toplevel(parent)
         self.window.title("Exercise Suggestions")
         self.window.geometry("450x200")
-        self.master.iconbitmap("images/calculator_logo.ico")
+        self.window.iconbitmap("images/calculator_logo.ico")
 
         self.exercises = self.load_exercise_data()
         self.current_exercise = 0
