@@ -428,7 +428,13 @@ class BMICalculatorGUI:
         right_frame.pack(side=RIGHT, padx=(10, 0), fill=BOTH)
 
         # Add calendar to the right frame
-        self.calendar = Calendar(right_frame, selectmode='day', date_pattern='yyyy-mm-dd')
+        self.calendar = Calendar(
+            right_frame, 
+            selectmode='day', 
+            date_pattern='yyyy-mm-dd',
+            background="Black",
+            weekendbackground="white",  # Ensure weekend is white too
+        )
         self.calendar.pack(fill=BOTH)
 
         # Set the calendar to today's date
