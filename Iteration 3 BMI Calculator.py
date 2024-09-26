@@ -198,6 +198,7 @@ class LoginWindow:
         self.master.title("Login")
         self.master.geometry("300x240")
         self.master.minsize(300, 240)
+        self.master.iconbitmap("images/calculator_logo.ico")
 
         self.create_widgets()
         self.load_saved_details()  # Load saved login details if available
@@ -289,6 +290,7 @@ class RegisterWindow:
         self.master.title("Register")
         self.master.geometry("310x260")
         self.master.minsize(300,250)
+        self.master.iconbitmap("images/calculator_logo.ico")
 
         self.create_widgets()
     
@@ -352,6 +354,7 @@ class BMICalculatorGUI:
 
         self.master.minsize(600, 400)
         self.master.geometry("600x525")
+        self.master.iconbitmap("images/calculator_logo.ico")
 
         self.create_widgets()
         self.load_user_data()
@@ -758,6 +761,7 @@ class ExerciseSuggestionWindow:
         self.window = Toplevel(parent)
         self.window.title("Exercise Suggestions")
         self.window.geometry("450x200")
+        self.master.iconbitmap("images/calculator_logo.ico")
 
         self.exercises = self.load_exercise_data()
         self.current_exercise = 0
