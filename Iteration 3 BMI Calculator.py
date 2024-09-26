@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.backend_bases import MouseButton
+import re
 
 # Constants
 BMI_UNDERWEIGHT = 18.4
@@ -65,10 +66,23 @@ class UserManager:
     # Register a new user; return False if username already exists
     def register_user(self, username, password):
         if username in self.users:
-            return False
+            return False, "Username already exists"
+        if len(username) < 3 or len(username) > 16:
+            return False, "Username must be between 3 and 16 characters long"
+        if not self.is_password_valid(password):
+            return False, "Password does not meet the requirements"
         self.users[username] = User(username, password)
         self.save_users()
-        return True
+        return True, "Registration successful"
+    
+    def is_password_valid(self, password):
+        # At least 8 characters long
+        # Contains at least one uppercase letter, one lowercase letter, one digit, and one special character
+        return (len(password) >= 8 and
+                re.search(r"[A-Z]", password) and
+                re.search(r"[a-z]", password) and
+                re.search(r"\d", password) and
+                re.search(r"[!@#$%^&*(),.?\":{}|<>]", password))
     
     # Update user's latest weight and height data
     def update_user_data(self, username, weight, height):
@@ -182,7 +196,7 @@ class LoginWindow:
         self.on_login_success = on_login_success
 
         self.master.title("Login")
-        self.master.geometry("300x220")
+        self.master.geometry("300x240")
 
         self.create_widgets()
         self.load_saved_details()  # Load saved login details if available
@@ -191,16 +205,20 @@ class LoginWindow:
     def create_widgets(self):
         self.username_label = Label(self.master, text="Username:")
         self.username_label.pack(pady=5)
-
         self.username_entry = Entry(self.master)
         self.username_entry.pack()
 
         self.password_label = Label(self.master, text="Password:")
         self.password_label.pack(pady=5)
-
         self.password_entry = Entry(self.master, show="*")
         self.password_entry.pack()
 
+        # "Show Password" checkbox
+        self.show_password_var = BooleanVar()
+        self.show_password_check = Checkbutton(self.master, text="Show Password", variable=self.show_password_var,
+                                               command=self.toggle_password_visibility)
+        self.show_password_check.pack(pady=2)
+        
         # Remember Me checkbox
         self.remember_var = BooleanVar()
         self.remember_check = Checkbutton(self.master, text="Remember My Details", variable=self.remember_var)
@@ -211,6 +229,12 @@ class LoginWindow:
 
         self.register_button = Button(self.master, text="Register New Account", command=self.open_register_window)
         self.register_button.pack(pady=15)
+    
+    def toggle_password_visibility(self):
+        if self.show_password_var.get():
+            self.password_entry.config(show="")  # Show password
+        else:
+            self.password_entry.config(show="*")  # Hide password
 
     # Perform login when the user clicks the login button
     def login(self):
@@ -262,37 +286,59 @@ class RegisterWindow:
         self.user_manager = user_manager
 
         self.master.title("Register")
-        self.master.geometry("300x150")
+        self.master.geometry("300x250")
 
         self.create_widgets()
     
     # Create registration form fields for username, password, and buttons
     def create_widgets(self):
-        self.username_label = Label(self.master, text="Username:")
+        self.username_label = Label(self.master, text="Username (3-16 characters):")
         self.username_label.pack()
         self.username_entry = Entry(self.master)
         self.username_entry.pack()
 
         self.password_label = Label(self.master, text="Password:")
         self.password_label.pack()
-        self.password_entry = Entry(self.master, show="*") # Hide password characters
+        self.password_entry = Entry(self.master, show="*")
         self.password_entry.pack()
+        
+        # "Show Password" checkbox
+        self.show_password_var = BooleanVar()
+        self.show_password_check = Checkbutton(self.master, text="Show Password", variable=self.show_password_var,
+                                               command=self.toggle_password_visibility)
+        self.show_password_check.pack()
 
-        # Button to register the new user
+        self.requirements_label = Label(self.master, text="Password requirements:\n"
+                                                          "- At least 8 characters long\n"
+                                                          "- At least one uppercase letter\n"
+                                                          "- At least one lowercase letter\n"
+                                                          "- At least one digit\n"
+                                                          "- At least one special character (!@#$%^&*(),.?\":{}|<>)",
+                                        justify=LEFT, wraplength=380)
+        self.requirements_label.pack(pady=10)
+
         self.register_button = Button(self.master, text="Register", command=self.register)
         self.register_button.pack()
+    
+    # Toggle visibility of password
+    def toggle_password_visibility(self):
+        if self.show_password_var.get():
+            self.password_entry.config(show="")  # Show password
+        else:
+            self.password_entry.config(show="*")  # Hide password
 
     # Register the user when the user clicks the register button
     def register(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
 
-        # Call UserManager to register the new user
-        if self.user_manager.register_user(username, password):
-            messagebox.showinfo("Registration Successful", "You can now login with your new account")
-            self.master.destroy() # Close the registration window after success
+        success, message = self.user_manager.register_user(username, password)
+        if success:
+            messagebox.showinfo("Registration Successful", message)
+            self.master.destroy()
         else:
-            messagebox.showerror("Registration Failed", "Username already exists")
+            messagebox.showerror("Registration Failed", message)
+
 
 # Class for handling the main BMI Calculator GUI window
 class BMICalculatorGUI:
@@ -702,7 +748,7 @@ class ExerciseSuggestionWindow:
     def __init__(self, parent):
         self.window = Toplevel(parent)
         self.window.title("Exercise Suggestions")
-        self.window.geometry("500x400")
+        self.window.geometry("450x200")
 
         self.exercises = self.load_exercise_data()
         self.current_exercise = 0
