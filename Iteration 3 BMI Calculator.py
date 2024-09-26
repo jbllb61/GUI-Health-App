@@ -147,13 +147,16 @@ class BMICalculator:
         
         return entry
 
-    # Remove a BMI entry by date string
-    def remove_bmi_entry(self, date_str):
-        if date_str in self.bmi_data:
-            del self.bmi_data[date_str]
+    # Remove BMI entries by date strings
+    def remove_bmi_entries(self, date_strings):
+        removed_count = 0
+        for date_str in date_strings:
+            if date_str in self.bmi_data:
+                del self.bmi_data[date_str]
+                removed_count += 1
+        if removed_count > 0:
             self.save_data()
-            return True
-        return False
+        return removed_count
 
     # Save BMI data to a JSON file
     def save_data(self):
@@ -467,17 +470,16 @@ class BMICalculatorGUI:
         history_frame = Frame(self.notebook, padding="10")
         self.notebook.add(history_frame, text="History")
         
-        # Inform the user they can scroll if there's too much data
-        info_label = Label(history_frame, text="Scroll to see more entries if necessary.", font=('Arial', 10, 'italic'))
+        info_label = Label(history_frame, text="Scroll to see more entries if necessary. Use Shift-click or Ctrl-click to select multiple entries.", font=('Arial', 10, 'italic'))
         info_label.pack(side=TOP, fill=X)
 
         # Create a treeview to display the history
-        self.history_tree = Treeview(history_frame, columns=("Date", "BMI", "Interpretation"), show="headings")
+        self.history_tree = Treeview(history_frame, columns=("Date", "BMI", "Interpretation"), show="headings", selectmode="extended")
         for col in ["Date", "BMI", "Interpretation"]:
             self.history_tree.heading(col, text=col)
         self.history_tree.pack(expand=True, fill=BOTH)
 
-        self.create_button(history_frame, "Remove Selected", self.remove_entry, None, expand=True)
+        self.create_button(history_frame, "Remove Selected", self.remove_entries, None, expand=True)
 
     # Create the Chart tab for visual representation of BMI data
     def create_chart_tab(self):
@@ -580,18 +582,19 @@ class BMICalculatorGUI:
             self.set_item_color(item, entry["interpretation"])
 
     # Remove a BMI entry from the history
-    def remove_entry(self):
-        selected_item = self.history_tree.selection()
-        if selected_item:
-            date_str = self.history_tree.item(selected_item)['values'][0]
-            if self.calculator.remove_bmi_entry(date_str):
+    def remove_entries(self):
+        selected_items = self.history_tree.selection()
+        if selected_items:
+            confirm = messagebox.askyesno("Confirm Deletion", f"Are you sure you want to delete {len(selected_items)} selected entries?")
+            if confirm:
+                date_strings = [self.history_tree.item(item)['values'][0] for item in selected_items]
+                removed_count = self.calculator.remove_bmi_entries(date_strings)
+                
                 self.update_history()
                 self.update_chart()
-                messagebox.showinfo("Success", "Entry removed successfully.")
-            else:
-                messagebox.showerror("Error", "Failed to remove entry.")
+                messagebox.showinfo("Success", f"{removed_count} entries removed successfully.")
         else:
-            messagebox.showwarning("Warning", "Please select an entry to remove.")
+            messagebox.showwarning("Warning", "Please select one or more entries to remove.")
             
     # The following section shows the visual representation of BMI over time in the form of a graph
     def update_chart(self, *args):
