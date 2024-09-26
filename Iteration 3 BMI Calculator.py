@@ -197,6 +197,7 @@ class LoginWindow:
 
         self.master.title("Login")
         self.master.geometry("300x240")
+        self.master.minsize(300, 240)
 
         self.create_widgets()
         self.load_saved_details()  # Load saved login details if available
@@ -286,7 +287,8 @@ class RegisterWindow:
         self.user_manager = user_manager
 
         self.master.title("Register")
-        self.master.geometry("300x250")
+        self.master.geometry("310x260")
+        self.master.minsize(300,250)
 
         self.create_widgets()
     
@@ -433,7 +435,8 @@ class BMICalculatorGUI:
             selectmode='day', 
             date_pattern='yyyy-mm-dd',
             background="Black",
-            weekendbackground="white",  # Ensure weekend is white too
+            weekendbackground="white",
+             weekendforeground="black",
         )
         self.calendar.pack(fill=BOTH)
 
