@@ -690,7 +690,7 @@ class BMICalculatorGUI:
         
         # Set x-axis limits
         if min(filtered_dates) != max(filtered_dates):
-            self.ax.set_xlim([min(filtered_dates), max(filtered_dates)])
+            self.ax.set_xlim([min(filtered_dates) - datetime.timedelta(days=0.5), max(filtered_dates) + datetime.timedelta(days=0.5)])
         else:
             # If only one date, extend the range by a day on either side
             self.ax.set_xlim([min(filtered_dates) - datetime.timedelta(days=1),
